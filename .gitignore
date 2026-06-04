@@ -1,0 +1,7 @@
+# Ignore model weights
+models/
+*.gguf
+
+# Ignore local environment or state overrides
+.env
+.DS_Store

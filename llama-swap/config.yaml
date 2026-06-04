@@ -1,0 +1,50 @@
+healthCheckTimeout: 120
+
+# We define the baseline hardware profile once here
+macros:
+  base_gpu_profile: >
+    llama-server 
+    --port ${PORT} 
+    --n-gpu-layers 99 
+    --cache-type-k q8_0 
+    --cache-type-v q8_0 
+    --flash-attn on 
+    --batch-size 4096 
+    --ubatch-size 4096
+
+models:
+  # Qwen 3.6 27B model
+  "qwen3.6:27b":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 131072 
+      --model /models/unsloth/Qwen3.6-27B-Q5_K_M.gguf
+
+  # Qwen 3.6 35B MoE (Target: Q5_K_M quant to fit within 32GB)
+  "qwen3.6:35b-moe":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 65536 
+      --model /models/unsloth/Qwen3.6-35B-A3B-UD-Q5_K_M.gguf
+
+# NEW: Gemma 4 31B Dense (Target: Q5_K_M quant)
+  "gemma4:31b":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 65536 
+      --model /models/unsloth/gemma-4-31B-it-Q5_K_M.gguf
+
+  # NEW: Gemma 4 26B MoE (Target: Q6_K quant)
+  "gemma4:26b-moe":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 65536 
+      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K_XL.gguf
+
+  # NEW: Gemma 4 12B (Target: Pristine Q8_0 quant with massive context)
+  "gemma4:12b":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 131072 
+      --model /models/unsloth/gemma-4-12b-it-Q8_0.gguf
+

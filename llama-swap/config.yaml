@@ -1,50 +1,81 @@
 healthCheckTimeout: 120
 
-# We define the baseline hardware profile once here
 macros:
   base_gpu_profile: >
     llama-server 
     --port ${PORT} 
     --n-gpu-layers 99 
-    --cache-type-k q8_0 
-    --cache-type-v q8_0 
-    --flash-attn on 
-    --batch-size 4096 
-    --ubatch-size 4096
+    --cache-type-k q4_0 
+    --cache-type-v q4_0 
+    --flash-attn on
 
 models:
-  # Qwen 3.6 27B model
   "qwen3.6:27b":
     cmd: >
       ${base_gpu_profile} 
+      --ctx-size 262000 
+      --model /models/unsloth/Qwen3.6-27B-Q5_K_M.gguf 
+      --mmproj /models/unsloth/Qwen3.6-27B-Q5_K_M-mmproj-qwen-27b-f16.gguf
+
+  "qwen3.6:35b-a3b-ud":
+    cmd: >
+      ${base_gpu_profile} 
       --ctx-size 131072 
-      --model /models/unsloth/Qwen3.6-27B-Q5_K_M.gguf
+      --model /models/unsloth/Qwen3.6-35B-A3B-UD-Q5_K_M.gguf 
+      --mmproj /models/unsloth/Qwen3.6-35B-A3B-UD-Q5_K_M-mmproj-F16.gguf
 
-  # Qwen 3.6 35B MoE (Target: Q5_K_M quant to fit within 32GB)
-  "qwen3.6:35b-moe":
-    cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 65536 
-      --model /models/unsloth/Qwen3.6-35B-A3B-UD-Q5_K_M.gguf
-
-# NEW: Gemma 4 31B Dense (Target: Q5_K_M quant)
-  "gemma4:31b":
-    cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 65536 
-      --model /models/unsloth/gemma-4-31B-it-Q5_K_M.gguf
-
-  # NEW: Gemma 4 26B MoE (Target: Q6_K quant)
-  "gemma4:26b-moe":
-    cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 65536 
-      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K_XL.gguf
-
-  # NEW: Gemma 4 12B (Target: Pristine Q8_0 quant with massive context)
   "gemma4:12b":
     cmd: >
       ${base_gpu_profile} 
       --ctx-size 131072 
-      --model /models/unsloth/gemma-4-12b-it-Q8_0.gguf
+      --model /models/unsloth/gemma-4-12b-it-Q8_0.gguf 
+      --mmproj /models/unsloth/gemma-4-12b-mmproj/mmproj-F16.gguf
 
+  "gemma4:26b-moe":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 65536 
+      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K.gguf 
+      --mmproj /models/unsloth/gemma-4-26b-a4b-mmproj/mmproj-F16.gguf
+
+  "gemma4:26b-moe-xl":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 65536 
+      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K_XL.gguf 
+      --mmproj /models/unsloth/gemma-4-26b-a4b-mmproj/mmproj-F16.gguf
+
+  "gemma4:31b":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 65536 
+      --model /models/unsloth/gemma-4-31B-it-Q5_K_M.gguf 
+      --mmproj /models/unsloth/gemma-4-31b-mmproj/mmproj-F16.gguf
+
+  "nex-n2-mini:q5":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 131072 
+      --model /models/sjakek/Nex-N2-mini-UD-Q5_K_XL.gguf 
+      --mmproj /models/sjakek/mmproj-BF16.gguf
+
+  "gemma4-e4b:uncensored":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 131072 
+      --model /models/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf 
+      --mmproj /models/HauhauCS/mmproj-Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-f16.gguf
+
+  "gemma4-heretic:26b-moe-q6":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 65536 
+      --model /models/llmfan46/gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q6_K.gguf 
+      --mmproj /models/llmfan46/gemma-4-26B-A4B-it-mmproj-BF16.gguf
+
+  "qwen3.6:35b-hauhau-q4":
+    cmd: >
+      ${base_gpu_profile} 
+      --ctx-size 1000000 
+      --model /models/HauhauCS/qwen36/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf 
+      --mmproj /models/HauhauCS/qwen36/mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf

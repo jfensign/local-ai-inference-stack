@@ -4,13 +4,6 @@ services:
   llama-swap:
     build: .
     container_name: llama-swap
-    environment:
-      GOOSE_CONTEXT_STRATEGY: summarize
-      GOOSE_CONTEXT_LIMIT: 75000
-      GOOSE_PLANNER_PROVIDER: llama_swap
-      GOOSE_PLANNER_MODEL: qwen3.6-27b-instruct-q8-0
-      GOOSE_PROVIDER: llama_swap
-      GOOSE_MODEL: gemma4:26b-moe-xl
     ports:
       - "8088:8080"
     volumes:

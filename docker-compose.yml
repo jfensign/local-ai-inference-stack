@@ -18,6 +18,15 @@ services:
               count: all
               capabilities: [gpu]
 
+  llama-swap-exporter:
+    image: ghcr.io/squat/llama-swap-exporter:latest
+    container_name: llama-swap-exporter
+    command:
+      - --upstream=http://llama-swap:8080
+    restart: unless-stopped
+    ports:
+      - "9101:9293"
+
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant

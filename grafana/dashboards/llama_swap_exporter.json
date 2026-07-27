@@ -22,7 +22,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "High-Level Overview & Active Real-Time Performance",
+      "title": "System Overview & Cumulative Token Totals",
       "type": "row"
     },
     {
@@ -49,7 +49,7 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
-          "custom": {},
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
           "unit": "short"
         }
       },
@@ -58,8 +58,83 @@
       "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
       "pluginVersion": "10.0.0",
       "targets": [{ "expr": "count(llama_swap_model_up == 1)", "legendFormat": "Active Models" }],
-      "title": "Models Up",
+      "title": "Active Models Up",
       "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "id": 3,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "expr": "sum(llamacpp:prompt_tokens_total)", "legendFormat": "Input Tokens" }],
+      "title": "Total Input Tokens (Prompt)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "id": 4,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "expr": "sum(llamacpp:tokens_predicted_total)", "legendFormat": "Output Tokens" }],
+      "title": "Total Output Tokens (Generated)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "id": 5,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "expr": "sum(llamacpp:prompt_tokens_total) + sum(llamacpp:tokens_predicted_total)", "legendFormat": "Combined Tokens" }],
+      "title": "Total Combined Tokens",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "orange", "value": null }] },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "id": 6,
+      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "expr": "sum(llamacpp:n_decode_total)", "legendFormat": "Decode Calls" }],
+      "title": "Total Decode Calls",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 200,
+      "title": "Real-Time Speeds & Current Load",
+      "type": "row"
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
@@ -70,8 +145,8 @@
           "unit": "tokens/s"
         }
       },
-      "gridPos": { "h": 4, "w": 5, "x": 8, "y": 1 },
-      "id": 3,
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 6 },
+      "id": 7,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
       "pluginVersion": "10.0.0",
       "targets": [{ "expr": "sum(rate(llamacpp:tokens_predicted_total[1m]))", "legendFormat": "Gen Speed" }],
@@ -87,12 +162,12 @@
           "unit": "tokens/s"
         }
       },
-      "gridPos": { "h": 4, "w": 5, "x": 13, "y": 1 },
-      "id": 4,
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 6 },
+      "id": 8,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
       "pluginVersion": "10.0.0",
       "targets": [{ "expr": "sum(rate(llamacpp:prompt_tokens_total[1m]))", "legendFormat": "Prompt Speed" }],
-      "title": "Prompt Processing Speed (Current)",
+      "title": "Prompt Eval Speed (Current)",
       "type": "stat"
     },
     {
@@ -104,8 +179,8 @@
           "unit": "short"
         }
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
-      "id": 5,
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 6 },
+      "id": 9,
       "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
       "pluginVersion": "10.0.0",
       "targets": [{ "expr": "sum(llamacpp:requests_processing)", "legendFormat": "Processing Requests" }],
@@ -113,17 +188,34 @@
       "type": "stat"
     },
     {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "yellow", "value": null }] },
+          "unit": "s"
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 6 },
+      "id": 10,
+      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "pluginVersion": "10.0.0",
+      "targets": [{ "expr": "sum(llamacpp:prompt_seconds_total) + sum(llamacpp:tokens_predicted_seconds_total)", "legendFormat": "Total Processing Time" }],
+      "title": "Total Inference Processing Time",
+      "type": "stat"
+    },
+    {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
-      "id": 200,
-      "title": "Token Throughput & Ingestion Metrics",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 10 },
+      "id": 300,
+      "title": "Token Throughput & Ingestion Metrics Over Time",
       "type": "row"
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineInterpolation": "smooth" }, "unit": "tokens/s" } },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
-      "id": 6,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 11 },
+      "id": 11,
       "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -136,8 +228,8 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "tokens/s" } },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
-      "id": 7,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 11 },
+      "id": 12,
       "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -150,43 +242,43 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 14 },
-      "id": 8,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 19 },
+      "id": 13,
       "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
         { "expr": "llamacpp:tokens_predicted_total", "legendFormat": "Generated Tokens: {{model}}" },
         { "expr": "llamacpp:prompt_tokens_total", "legendFormat": "Prompt Tokens: {{model}}" }
       ],
-      "title": "Cumulative Token Volume",
+      "title": "Cumulative Token Volume Per Model",
       "type": "timeseries"
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "s" } },
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 14 },
-      "id": 9,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 19 },
+      "id": 14,
       "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
         { "expr": "llamacpp:tokens_predicted_seconds_total", "legendFormat": "Predict Time: {{model}}" },
         { "expr": "llamacpp:prompt_seconds_total", "legendFormat": "Prompt Process Time: {{model}}" }
       ],
-      "title": "Cumulative Processing Time (Seconds)",
+      "title": "Cumulative Processing Time Per Model (Seconds)",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
-      "id": 300,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 400,
       "title": "llama.cpp Engine & Queue Dynamics",
       "type": "row"
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 22 },
-      "id": 10,
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 27 },
+      "id": 15,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -199,8 +291,8 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "ops" } },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 22 },
-      "id": 11,
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 27 },
+      "id": 16,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -212,8 +304,8 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 22 },
-      "id": 12,
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 27 },
+      "id": 17,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -224,16 +316,16 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
-      "id": 400,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "id": 500,
       "title": "Model Status & Exporter Diagnostics",
       "type": "row"
     },
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "displayMode": "basic" } } },
-      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 },
-      "id": 13,
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 35 },
+      "id": 18,
       "options": { "cellHeight": "sm", "footer": { "show": false }, "showHeader": true },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -245,8 +337,8 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "s" } },
-      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 30 },
-      "id": 14,
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 35 },
+      "id": 19,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -258,8 +350,8 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 30 },
-      "id": 15,
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 35 },
+      "id": 20,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
       "pluginVersion": "10.0.0",
       "targets": [
@@ -290,7 +382,7 @@
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "llama-swap & llama.cpp Full Telemetry Dashboard",
+  "title": "llama-swap & llama.cpp Telemetry Dashboard",
   "uid": "llama-swap-full-observability",
-  "version": 1
+  "version": 2
 }

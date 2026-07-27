@@ -8,3 +8,5 @@ models/
 
 # RAG
 qdrant_data
+llama-swap/.playwright-mcp
+llama-swap/config.yaml.bak

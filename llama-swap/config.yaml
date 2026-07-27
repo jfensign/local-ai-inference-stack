@@ -1,81 +1,125 @@
-healthCheckTimeout: 120
+healthCheckTimeout: 180
+globalTTL: 300
 
 macros:
   base_gpu_profile: >
-    llama-server 
-    --port ${PORT} 
-    --n-gpu-layers 99 
-    --cache-type-k q4_0 
-    --cache-type-v q4_0 
+    llama-server
+    --port ${PORT}
+    --host 0.0.0.0
+    --n-gpu-layers 99
+    --cache-type-k q8_0
+    --cache-type-v q8_0
     --flash-attn on
+    --batch-size 2048
+    --ubatch-size 512
+    --threads 16
+    --metrics
 
 models:
   "qwen3.6:27b":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 262000 
-      --model /models/unsloth/Qwen3.6-27B-Q5_K_M.gguf 
+      ${base_gpu_profile}
+      --ctx-size 65536
+      --model /models/unsloth/Qwen3.6-27B-Q5_K_M.gguf
       --mmproj /models/unsloth/Qwen3.6-27B-Q5_K_M-mmproj-qwen-27b-f16.gguf
 
+  "qwen3.6:27b-ud-xl":
+    cmd: >
+      ${base_gpu_profile}
+      --spec-type draft-mtp
+      --spec-draft-n-max 4
+      --spec-draft-p-min 0.3
+      --parallel 1
+      --ctx-size 112000
+      --context-shift
+      --model /models/unsloth/Qwen3.6-27B-UD-Q6_K_XL.gguf
+      --mmproj /models/unsloth/Qwen3.6-27B-Q5_K_M-mmproj-qwen-27b-f16.gguf
+
+
+  "qwen3.6-27b-instruct-q8-0":
+    aliases:
+      - "qwen3.6:27b-q8"
+      - "qwen3.6-q8"
+    cmd: >
+      ${base_gpu_profile}
+      --spec-type draft-mtp
+      --spec-draft-n-max 2
+      --parallel 1
+      --ctx-size 75536
+      --context-shift
+      --jinja
+      --model /models/unsloth/Qwen3.6-27B-Q8_0.gguf
   "qwen3.6:35b-a3b-ud":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 131072 
-      --model /models/unsloth/Qwen3.6-35B-A3B-UD-Q5_K_M.gguf 
+      ${base_gpu_profile}
+      --ctx-size 32768
+      --model /models/unsloth/Qwen3.6-35B-A3B-UD-Q5_K_M.gguf
       --mmproj /models/unsloth/Qwen3.6-35B-A3B-UD-Q5_K_M-mmproj-F16.gguf
 
   "gemma4:12b":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 131072 
-      --model /models/unsloth/gemma-4-12b-it-Q8_0.gguf 
+      ${base_gpu_profile}
+      --ctx-size 131072
+      --model /models/unsloth/gemma-4-12b-it-Q8_0.gguf
       --mmproj /models/unsloth/gemma-4-12b-mmproj/mmproj-F16.gguf
 
   "gemma4:26b-moe":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 65536 
-      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K.gguf 
+      ${base_gpu_profile}
+      --ctx-size 65536
+      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K.gguf
+      --mmproj /models/unsloth/gemma-4-26b-a4b-mmproj/mmproj-F16.gguf
+
+  "gemma4:26b-mtp": 
+    cmd: > 
+      ${base_gpu_profile}
+      --fit off
+      --ctx-size 112000
+      --spec-type draft-mtp
+      --spec-draft-n-max 4
+      --parallel 1
+      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K_XL.gguf
+      --model-draft /models/unsloth/MTP/mtp-gemma-4-26B-A4B-it-Q8_0.gguf
       --mmproj /models/unsloth/gemma-4-26b-a4b-mmproj/mmproj-F16.gguf
 
   "gemma4:26b-moe-xl":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 65536 
-      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K_XL.gguf 
+      ${base_gpu_profile}
+      --ctx-size 65536
+      --model /models/unsloth/gemma-4-26B-A4B-it-UD-Q6_K_XL.gguf
       --mmproj /models/unsloth/gemma-4-26b-a4b-mmproj/mmproj-F16.gguf
 
   "gemma4:31b":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 65536 
-      --model /models/unsloth/gemma-4-31B-it-Q5_K_M.gguf 
+      ${base_gpu_profile}
+      --ctx-size 32768
+      --model /models/unsloth/gemma-4-31B-it-Q5_K_M.gguf
       --mmproj /models/unsloth/gemma-4-31b-mmproj/mmproj-F16.gguf
 
   "nex-n2-mini:q5":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 131072 
-      --model /models/sjakek/Nex-N2-mini-UD-Q5_K_XL.gguf 
+      ${base_gpu_profile}
+      --ctx-size 65536
+      --model /models/sjakek/Nex-N2-mini-UD-Q5_K_XL.gguf
       --mmproj /models/sjakek/mmproj-BF16.gguf
 
   "gemma4-e4b:uncensored":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 131072 
-      --model /models/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf 
+      ${base_gpu_profile}
+      --ctx-size 131072
+      --model /models/HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q8_K_P.gguf
       --mmproj /models/HauhauCS/mmproj-Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-f16.gguf
 
   "gemma4-heretic:26b-moe-q6":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 65536 
-      --model /models/llmfan46/gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q6_K.gguf 
+      ${base_gpu_profile}
+      --ctx-size 65536
+      --model /models/llmfan46/gemma-4-26B-A4B-it-ultra-uncensored-heretic-Q6_K.gguf
       --mmproj /models/llmfan46/gemma-4-26B-A4B-it-mmproj-BF16.gguf
 
   "qwen3.6:35b-hauhau-q4":
     cmd: >
-      ${base_gpu_profile} 
-      --ctx-size 1000000 
-      --model /models/HauhauCS/qwen36/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf 
+      ${base_gpu_profile}
+      --ctx-size 49152
+      --model /models/HauhauCS/qwen36/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf
       --mmproj /models/HauhauCS/qwen36/mmproj-Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive-f16.gguf

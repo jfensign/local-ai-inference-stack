@@ -5,3 +5,6 @@ models/
 # Ignore local environment or state overrides
 .env
 .DS_Store
+
+# RAG
+qdrant_data

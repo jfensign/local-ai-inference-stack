@@ -27,3 +27,15 @@ To maximize token throughput and context depth without compromising model intell
 
 
 
+
+## Services Architecture
+
+The following services are orchestrated via Docker Compose to provide a complete inference and telemetry stack:
+
+| Service | Purpose | Ports |
+| :--- | :--- | :--- |
+| **llama-swap** | Dynamic routing proxy for managing multiple `llama-server` instances and model hot-swapping. | `8088` |
+| **qdrant** | High-performance vector database for RAG (Retrieval-Augmented Generation) workflows. | `6333` (REST), `6334` (gRPC) |
+| **prometheus** | Time-series database for collecting and storing system and application metrics. | `9090` |
+| **grafana** | Visualization platform for real-time telemetry dashboards and observability. | `3033` |
+| **dcgm-exporter** | NVIDIA Data Center GPU Manager exporter for deep GPU telemetry (VRAM, thermals, etc.). | `9400` |

@@ -1,0 +1,846 @@
+{
+  "editable": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": [],
+      "title": "Engine & Throughput",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 10,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(ninfer_engine_committed_decode_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "legendFormat": "decode tok/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Decode Throughput (tokens/s)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(ninfer_engine_computed_prefill_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "legendFormat": "prefill tok/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Prefill Throughput (tokens/s)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 4
+              },
+              {
+                "color": "red",
+                "value": 8
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(ninfer_engine_running_requests{job=\"ninfer\"})",
+          "legendFormat": "running",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(ninfer_engine_waiting_requests{job=\"ninfer\"})",
+          "legendFormat": "waiting",
+          "refId": "B"
+        }
+      ],
+      "title": "Running / Waiting Requests",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "s",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "title": "Chat Latency p95",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.4
+              },
+              {
+                "color": "green",
+                "value": 0.7
+              }
+            ]
+          },
+          "unit": "percentunit",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "clamp(sum(rate(ninfer_speculative_accepted_tokens_total{job=\"ninfer\"}[5m])) / clamp_min(sum(rate(ninfer_speculative_draft_tokens_total{job=\"ninfer\"}[5m])), 1e-9), 0, 1)",
+          "legendFormat": "accepted/draft",
+          "refId": "A"
+        }
+      ],
+      "title": "Speculative Acceptance Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "none",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(ninfer_speculative_rounds_total{job=\"ninfer\"}[5m]))",
+          "legendFormat": "rounds/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Spec Rounds /s",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "id": 20,
+      "targets": [
+        {
+          "expr": "sum(increase(ninfer_engine_computed_prefill_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "legendFormat": "prefill tok/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(ninfer_engine_committed_decode_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "legendFormat": "decode tok/s",
+          "refId": "B"
+        }
+      ],
+      "title": "Token Throughput (prefill vs decode)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 21,
+      "targets": [
+        {
+          "expr": "sum(rate(ninfer_engine_decode_rounds_total{job=\"ninfer\"}[1m]))",
+          "legendFormat": "rounds/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(ninfer_engine_decode_row_rounds_total{job=\"ninfer\"}[1m])) / clamp_min(sum(rate(ninfer_engine_decode_rounds_total{job=\"ninfer\"}[1m])), 1e-9)",
+          "legendFormat": "avg batch size",
+          "refId": "B"
+        }
+      ],
+      "title": "Decode Rounds & Average Batch Size",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 2,
+      "panels": [],
+      "title": "Scheduling & Speculative Decoding",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 30,
+      "targets": [
+        {
+          "expr": "sum(ninfer_engine_running_requests{job=\"ninfer\"})",
+          "legendFormat": "running",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(ninfer_engine_prefilling_requests{job=\"ninfer\"})",
+          "legendFormat": "prefilling",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(ninfer_engine_decode_ready_requests{job=\"ninfer\"})",
+          "legendFormat": "decode_ready",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(ninfer_engine_waiting_requests{job=\"ninfer\"})",
+          "legendFormat": "waiting (FIFO ingress)",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(ninfer_http_requests_in_progress{job=\"ninfer\"})",
+          "legendFormat": "http in progress",
+          "refId": "E"
+        }
+      ],
+      "title": "Request Pipeline State",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 31,
+      "targets": [
+        {
+          "expr": "sum(rate(ninfer_speculative_draft_tokens_total{job=\"ninfer\"}[5m]))",
+          "legendFormat": "draft tok/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(ninfer_speculative_accepted_tokens_total{job=\"ninfer\"}[5m]))",
+          "legendFormat": "accepted tok/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(ninfer_speculative_fallback_steps_total{job=\"ninfer\"}[5m]))",
+          "legendFormat": "fallback steps/s",
+          "refId": "C"
+        }
+      ],
+      "title": "Speculative Draft vs Accepted Tokens",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 25
+      },
+      "id": 3,
+      "panels": [],
+      "title": "Memory & KV Cache",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "id": 40,
+      "targets": [
+        {
+          "expr": "sum(ninfer_memory_arena_bytes{job=\"ninfer\",state=\"used\"}) by (arena)",
+          "legendFormat": "{{arena}} used",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(ninfer_memory_arena_bytes{job=\"ninfer\",state=\"peak\"}) by (arena)",
+          "legendFormat": "{{arena}} peak",
+          "refId": "B"
+        }
+      ],
+      "title": "Device Arena Memory by Arena",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "id": 41,
+      "targets": [
+        {
+          "expr": "ninfer_memory_kv_capacity_page_groups{job=\"ninfer\"}",
+          "legendFormat": "KV page groups",
+          "refId": "A"
+        },
+        {
+          "expr": "ninfer_memory_kv_capacity_max_page_groups{job=\"ninfer\"}",
+          "legendFormat": "KV max page groups",
+          "refId": "B"
+        },
+        {
+          "expr": "ninfer_memory_available_after_startup_bytes{job=\"ninfer\"}",
+          "legendFormat": "available after startup",
+          "refId": "C"
+        }
+      ],
+      "title": "KV Cache Capacity & Headroom",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 35
+      },
+      "id": 4,
+      "panels": [],
+      "title": "HTTP Surface",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "id": 50,
+      "targets": [
+        {
+          "expr": "sum(rate(ninfer_http_requests_total{job=\"ninfer\",status=~\"2..\"}[1m]))",
+          "legendFormat": "2xx",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(ninfer_http_requests_total{job=\"ninfer\",status=~\"4..\"}[1m]))",
+          "legendFormat": "4xx",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(ninfer_http_requests_total{job=\"ninfer\",status=~\"5..\"}[1m]))",
+          "legendFormat": "5xx",
+          "refId": "C"
+        }
+      ],
+      "title": "Requests per Second by Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "id": 51,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
+        }
+      ],
+      "title": "Request Latency Percentiles (chat_completions)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "spanNulls": true
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 45
+      },
+      "id": 52,
+      "targets": [
+        {
+          "expr": "sum(ninfer_http_requests_in_progress{job=\"ninfer\"})",
+          "legendFormat": "in progress",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP In-Progress",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 45
+      },
+      "id": 53,
+      "options": {
+        "colorMode": "none",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "ninfer_model_info{job=\"ninfer\"}",
+          "legendFormat": "attached",
+          "refId": "A"
+        },
+        {
+          "expr": "ninfer_uptime_seconds{job=\"ninfer\"}",
+          "legendFormat": "uptime (s)",
+          "refId": "B"
+        },
+        {
+          "expr": "ninfer_max_context_tokens{job=\"ninfer\"}",
+          "legendFormat": "max context",
+          "refId": "C"
+        },
+        {
+          "expr": "ninfer_max_concurrency{job=\"ninfer\"}",
+          "legendFormat": "max concurrency",
+          "refId": "D"
+        },
+        {
+          "expr": "ninfer_max_pending_requests{job=\"ninfer\"}",
+          "legendFormat": "max pending",
+          "refId": "E"
+        }
+      ],
+      "title": "Engine",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": [
+    "ninfer",
+    "inference"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "value": "default"
+        },
+        "hide": 0,
+        "label": "Data Source",
+        "name": "DS_PROMETHEUS",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "type": "datasource"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timezone": "browser",
+  "title": "NInfer - Inference Engine",
+  "uid": "ninfer",
+  "version": 1
+}

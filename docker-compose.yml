@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
   ninfer:
     build:
-      context: https://github.com/Neroued/ninfer.git#master
+      context: ./ninfer
       dockerfile: Dockerfile
     image: ninfer:local
     container_name: ninfer

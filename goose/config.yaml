@@ -1,5 +1,33 @@
-OPENAI_BASE_URL: http://llama-swap:8080/v1
+# =============================================================================
+# goose config for the docker-compose service "goose"
+# Mounted at /home/goose/.config/goose/config.yaml (see docker-compose.yml).
+#
+# Provider chain:
+#   goose -> llama-swap:8080 (OpenAI-compatible swap layer) -> ninfer:8087
+#
+# goose 1.30.0 compatibility notes (verified against the shipped binary):
+#   - The CLI resolves provider/model from the FLAT keys GOOSE_PROVIDER /
+#     GOOSE_MODEL (env or this file). The newer `active_provider` /
+#     `providers:` block is NOT consulted by `goose run` in 1.30.0.
+#   - There is no built-in "llama_swap" provider. The llama-swap endpoint is
+#     consumed through the OpenAI-compatible provider via OPENAI_HOST.
+#   - OPENAI_HOST is the endpoint root (no trailing path); requests go to
+#     ${OPENAI_HOST}/v1/chat/completions by default (OPENAI_BASE_PATH).
+#   - Single-file bind mount: goose's own config writes (migrations) fail
+#     with EBUSY and are skipped - the repo file stays the source of truth.
+# =============================================================================
+
+# --- Provider (llama-swap swap layer, OpenAI-compatible) ---
+GOOSE_PROVIDER: openai
+GOOSE_MODEL: qwen3.8-27b
+OPENAI_HOST: http://llama-swap:8080
 OPENAI_API_KEY: sk-local
+
+# --- Ollama (host instance, secondary) ---
+# Switch with: goose run --provider ollama --model "hf.co/unsloth/Qwen3.6-27B-GGUF:UD-Q6_K_XL"
+OLLAMA_HOST: http://host.docker.internal:11434
+
+# --- Global settings ---
 GOOSE_MAX_TURNS: 100
 GOOSE_TELEMETRY_ENABLED: false
 GOOSE_MODE: auto
@@ -8,22 +36,6 @@ GOOSE_CLI_MIN_PRIORITY: 0.0
 GOOSE_SEARCH_PATHS:
   - /usr/local/bin
   - /usr/bin
-
-active_provider: llama_swap
-LLAMA_SWAP_HOST: http://llama-swap:8080
-
-providers:
-  ollama:
-    enabled: true
-    model: gemma4:31b
-    configured: true
-    host: http://host.docker.internal:11434
-  llama_swap:
-    enabled: true
-    model: qwen3.8-27b
-    configured: true
-    host: http://llama-swap:8080/v1
-    api_key: sk-local
 
 extensions:
   developer:
@@ -77,7 +89,7 @@ extensions:
   extensionmanager:
     enabled: true
     type: platform
-    name: Extension Manager
+    name: extensionmanager
     description: Enable extension management tools for discovering, enabling, and disabling extensions
     display_name: Extension Manager
     bundled: true

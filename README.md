@@ -39,3 +39,18 @@ The following services are orchestrated via Docker Compose to provide a complete
 | **prometheus** | Time-series database for collecting and storing system and application metrics. | `9090` |
 | **grafana** | Visualization platform for real-time telemetry dashboards and observability. | `3033` |
 | **dcgm-exporter** | NVIDIA Data Center GPU Manager exporter for deep GPU telemetry (VRAM, thermals, etc.). | `9400` |
+| **ninfer** | From-scratch C++/CUDA single-GPU inference engine (OpenAI/Anthropic-compatible serving, MTP speculative decoding, INT8 paged KV, 128k context, vision). | `8087` |
+
+## NInfer Service
+
+[ninfer](https://github.com/Neroued/ninfer) serves the registered `qwen3.8-27b/nvfp4` artifact on `:8087` with an OpenAI/Anthropic-compatible HTTP API (`--spec mtp --draft-tokens 3 --max-context 131072 --kv-dtype int8 --vision`).
+
+- **Build:** `docker compose build ninfer` — builds from the local clone in `./ninfer` (its own git repo, not tracked here); requires an `sm_120a` GPU (RTX 5090) and CUDA 13.1+.
+- **Artifact:** `/models/NInfer/qwen3_8_27b_nvfp4.ninfer` (host `~/models`, bind-mounted read-only).
+- **Pinned source:** local commits `fa2c9b4` (Prometheus metrics export) + `275d504` (HTTP status normalization fix) on top of upstream `a05746a`. The pinned state lives in the `./ninfer` clone; a fresh checkout of the public upstream lacks the metrics commits.
+
+## NInfer Metrics
+
+`GET :8087/metrics` (unauthenticated, Prometheus text format 0.0.4) exposes engine runtime stats, device memory arenas, KV cache capacity, HTTP request counters and latency histograms (bounded route labels), and MTP speculative-decoding counters. Prometheus scrapes it via the `ninfer` job in `prometheus/prometheus.yml`, and the **"NInfer - Inference Engine"** Grafana dashboard (`:3033`) is auto-provisioned from `grafana/dashboards/ninfer.json`.
+
+Dashboard queries are pinned to `job="ninfer"`: the existing `llama-swap-exporter` re-exposes the active model's metrics under the `llama-swap-metrics` job with `model`/`upstream` labels, so unfiltered queries would double-count.

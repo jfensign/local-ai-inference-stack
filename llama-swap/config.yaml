@@ -1,5 +1,5 @@
 healthCheckTimeout: 180
-globalTTL: 300
+globalTTL: 1200
 
 macros:
   base_gpu_profile: >
@@ -12,29 +12,37 @@ macros:
     --flash-attn on
     --batch-size 2048
     --ubatch-size 512
-    --threads 16
+    --threads 12
     --metrics
+    --kv-unified
 
 models:
+  "qwen3.8:27b-ud-xl":
+    cmd: >
+      ${base_gpu_profile}
+      --spec-type draft-mtp
+      --spec-draft-n-max 3
+      --spec-draft-p-min 0.20
+      --parallel 1
+      --ctx-size 100000
+      --model /models/unsloth/Qwen3.8-27B-UD-Q6_K_XL.gguf
+      --mmproj /models/unsloth/Qwen3.8-27B-UD-Q6_K_XL-mmproj.gguf
+
+  "deepseek-v4-flash:iq4":
+    aliases:
+      - "deepseek-v4-flash"
+      - "deepseek-ai/DeepSeek-V4-Flash-0731"
+    cmd: >
+      ${base_gpu_profile}
+      --ctx-size 65536
+      --model /models/unsloth/UD-IQ4_XS/DeepSeek-V4-Flash-0731-UD-IQ4_XS-00001-of-00004.gguf
+
   "qwen3.6:27b":
     cmd: >
       ${base_gpu_profile}
       --ctx-size 65536
       --model /models/unsloth/Qwen3.6-27B-Q5_K_M.gguf
       --mmproj /models/unsloth/Qwen3.6-27B-Q5_K_M-mmproj-qwen-27b-f16.gguf
-
-  "qwen3.6:27b-ud-xl":
-    cmd: >
-      ${base_gpu_profile}
-      --spec-type draft-mtp
-      --spec-draft-n-max 4
-      --spec-draft-p-min 0.3
-      --parallel 1
-      --ctx-size 112000
-      --context-shift
-      --model /models/unsloth/Qwen3.6-27B-UD-Q6_K_XL.gguf
-      --mmproj /models/unsloth/Qwen3.6-27B-Q5_K_M-mmproj-qwen-27b-f16.gguf
-
 
   "qwen3.6-27b-instruct-q8-0":
     aliases:
@@ -49,6 +57,7 @@ models:
       --context-shift
       --jinja
       --model /models/unsloth/Qwen3.6-27B-Q8_0.gguf
+
   "qwen3.6:35b-a3b-ud":
     cmd: >
       ${base_gpu_profile}

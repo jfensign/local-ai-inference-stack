@@ -115,6 +115,22 @@ extensions:
       - mcp-server-qdrant
     envs:
       QDRANT_URL: http://qdrant:6333
+      # FastEmbed resolves its model cache from FASTEMBED_CACHE_PATH (read
+      # directly by fastembed's define_cache_dir / TextEmbedding, so the env
+      # var reaches the library). The HF hub cache layout is
+      # <cache_dir>/models--<org>--<repo>/, and the models live under
+      # ${HOME}/models/.hf/hub (hf-downloader sets HF_HOME=/models/.hf, so
+      # hub/ is the cache root). Pointing this one level higher (/models/.hf)
+      # makes snapshot_download look for models--qdrant--all-MiniLM-L6-v2-onnx
+      # in the wrong place and fail offline.
+      # The default embedding model (sentence-transformers/all-MiniLM-L6-v2)
+      # maps to the preseeded HF repo qdrant/all-MiniLM-L6-v2-onnx, and the
+      # derived vector name fast-all-minilm-l6-v2 matches the existing
+      # compliance collections (384d, cosine).
+      FASTEMBED_CACHE_PATH: /models/.hf/hub
+      # The ONNX snapshot (qdrant/all-MiniLM-L6-v2-onnx) is preseeded in the
+      # store; never touch the network from this extension.
+      HF_HUB_OFFLINE: "1"
     timeout: 500
 
   goosedocs:

@@ -1,7 +1,10 @@
+port: 8080
 healthCheckTimeout: 300
-globalTTL: 0
+globalTTL: 600
 
 models:
-  "qwen3.8-27b":
-    cmd: sleep infinity 
-    proxy: http://ninfer:8087
+  qwen3.8-27b-uncensored:
+    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_uncensored.ninfer --model-id qwen3.8-27b-uncensored --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 131072 --kv-capacity auto --kv-dtype int8 --vision"
+
+  qwen3.8-27b:
+    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer --model-id qwen3.8-27b --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 131072 --kv-capacity auto --kv-dtype int8 --vision"

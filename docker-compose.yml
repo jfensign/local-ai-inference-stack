@@ -6,84 +6,78 @@ x-model-volume: &model-volume
 
 services:
   hf-downloader:
-    image: python:3.11-slim
+    # Single sanctioned path for pulling models from the Hugging Face Hub.
+    # PREREQUISITE: goose, llama-swap, and ninfer consume artifacts from
+    # ${HOME}/models — all model downloads MUST go through this container so
+    # artifacts land in the store those services bind-read.
+    build:
+      context: .
+      dockerfile: Dockerfile.hf-downloader
+    image: hf-downloader:local
     container_name: hf-downloader
     volumes:
-      # Maps host directory ./models to container path /models
-      - ./models:/models
+      - ${HOME}/models:/models
+    # Run as the host user (joseph, uid 1000) so downloaded artifacts are
+    # owned by the store owner, not root.
+    user: "1000:1000"
     environment:
-      - HF_HUB_ENABLE_HF_TRANSFER=1
+      # Container runs as uid 1000 but the image sets HOME=/root; xet caches
+      # under $HOME so HOME must point at the host user's home.
+      - HOME=/home/joseph
+      # Cache (xet + HTTP) lives under the mounted /models so it is writable
+      # by uid 1000 inside the container (host $HOME/.cache is NOT mounted)
+      # and is reused across runs.
+      - HF_HOME=/models/.hf
+      - HF_XET_HIGH_PERFORMANCE=1
+      - HF_TOKEN=${HF_TOKEN:-}
+    # Usage (CLI is `hf` in huggingface_hub 1.x; `huggingface-cli` is a dead stub):
+    #   docker compose run --rm hf-downloader download <owner/repo> \
+    #       --local-dir /models/<name> [--include "*.gguf"]
+
   goose:
-    # Base image + uv (mcp-server-time, mcp-server-qdrant) + node (mcp-remote)
-    # so the stdio extensions in goose/config.yaml can spawn in-container.
     build:
       context: .
       dockerfile: goose.Dockerfile
     image: llama-stack-goose:local
     container_name: goose
-    stdin_open: true  # Keeps stdin open for interactive execution
-    tty: true         # Allocates a pseudo-TTY for shell interaction
+    stdin_open: true
+    tty: true
     environment:
-      # Provider endpoint wiring lives in goose/config.yaml
-      # (OPENAI_HOST -> llama-swap, OLLAMA_HOST -> host) so the repo file
-      # stays the single source of truth.
       - GOOSE_CLI_SHOW_THINKING=true
       - GOOSE_CONFIG_PATH=/home/goose/.config/goose/config.yaml
     volumes:
-      # Mount the project codebase you want Goose to operate on
       - ./goose/workspace:/workspace
-      # Optional: Preserve Goose config and session state on host
       - ./goose/config.yaml:/home/goose/.config/goose/config.yaml
+      # qdrant_rag extension resolves FastEmbed models from the shared model
+      # store (FASTEMBED_CACHE_PATH=/models/.hf/hub in goose/config.yaml).
+      - *model-volume
     working_dir: /workspace
-    # Allows Goose to talk directly to other containers on your host network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    ports:
+      - "3284:3284"
+    # The image ENTRYPOINT is /usr/local/bin/goose with a default CMD of
+    # --help, which printed CLI help and exited 0 -> docker restart-loop.
+    # Compose `command` replaces only the CMD (ENTRYPOINT is kept), so this
+    # runs: goose serve --host 0.0.0.0 --port 3284
+    command: serve --host 0.0.0.0 --port 3284
     restart: unless-stopped
-  ninfer:
+
+  llama-swap:
     build:
-      context: ./ninfer
+      context: .
       dockerfile: Dockerfile
-    image: ninfer:local
-    container_name: ninfer
+    image: llama-swap:local
+    container_name: llama-swap
     restart: unless-stopped
+    ports:
+      - "8088:8080"
     environment:
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_DEVICE_MAX_CONNECTIONS=1
     volumes:
       - *model-volume
-    expose:
-      - "8087"
-    ports:
-      - "8087:8087"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    command: >
-      ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer
-      --host 0.0.0.0
-      --port 8087
-      --spec mtp
-      --draft-tokens 3
-      --lm-head-draft
-      --max-context 131072 
-      --kv-capacity auto
-      --kv-dtype int8
-      --vision
-  llama-swap:
-    build: .
-    container_name: llama-swap
-    ports:
-      - "8088:8080"
-    volumes:
-      - *model-volume
       - ./llama-swap/config.yaml:/etc/llama-swap/config/config.yaml
-    restart: unless-stopped
-    depends_on:
-      - ninfer
     deploy:
       resources:
         reservations:
@@ -100,14 +94,16 @@ services:
     restart: unless-stopped
     ports:
       - "9101:9293"
+    depends_on:
+      - llama-swap
 
   qdrant:
     image: qdrant/qdrant:latest
     container_name: qdrant
     restart: always
     ports:
-      - "6333:6333" # REST
-      - "6334:6334" # gRPC
+      - "6333:6333"
+      - "6334:6334"
     expose:
       - "6333"
       - "6334"

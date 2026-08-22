@@ -13,3 +13,8 @@ llama-swap/config.yaml.bak
 
 # ninfer: pinned local clone (own git repo; see README "NInfer Service"), not vendored here
 ninfer/
+
+# Runtime artifacts (goose scratch workspace, failed-run output, qdrant snapshots)
+goose/workspace/
+output.md
+backups-*/

@@ -218,7 +218,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "histogram_quantile(0.95, sum(rate(llama_swap_scrape_duration_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(llama_swap_scrape_duration_seconds_bucket[5m])))",
           "legendFormat": "",
           "range": true,
           "refId": "A"
@@ -775,7 +775,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(ninfer_engine_computed_prefill_tokens_total[5m])) by (model)",
+          "expr": "sum by (model) (rate(ninfer_engine_computed_prefill_tokens_total[5m]))",
           "legendFormat": "{{model}} prefill",
           "range": true,
           "refId": "A"
@@ -785,7 +785,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(ninfer_engine_committed_decode_tokens_total[5m])) by (model)",
+          "expr": "sum by (model) (rate(ninfer_engine_committed_decode_tokens_total[5m]))",
           "legendFormat": "{{model}} decode",
           "range": true,
           "refId": "B"
@@ -856,7 +856,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(ninfer_engine_running_requests) by (model)",
+          "expr": "sum by (model) (ninfer_engine_running_requests)",
           "legendFormat": "{{model}} running",
           "range": true,
           "refId": "A"
@@ -866,7 +866,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(ninfer_engine_waiting_requests) by (model)",
+          "expr": "sum by (model) (ninfer_engine_waiting_requests)",
           "legendFormat": "{{model}} waiting",
           "range": true,
           "refId": "B"
@@ -876,7 +876,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(ninfer_engine_prefilling_requests) by (model)",
+          "expr": "sum by (model) (ninfer_engine_prefilling_requests)",
           "legendFormat": "{{model}} prefilling",
           "range": true,
           "refId": "C"
@@ -947,7 +947,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(ninfer_http_requests_total[5m])) by (status, model)",
+          "expr": "sum by (status, model) (rate(ninfer_http_requests_total[5m]))",
           "legendFormat": "{{status}} {{model}}",
           "range": true,
           "refId": "A"
@@ -1018,7 +1018,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(ninfer_speculative_accepted_tokens_total[5m])) by (model)",
+          "expr": "sum by (model) (rate(ninfer_speculative_accepted_tokens_total[5m]))",
           "legendFormat": "{{model}} accepted",
           "range": true,
           "refId": "A"
@@ -1028,7 +1028,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(ninfer_speculative_draft_tokens_total[5m])) by (model)",
+          "expr": "sum by (model) (rate(ninfer_speculative_draft_tokens_total[5m]))",
           "legendFormat": "{{model}} draft",
           "range": true,
           "refId": "B"
@@ -1860,7 +1860,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(ninfer_memory_arena_bytes{state=\"used\"}) by (arena)",
+          "expr": "sum by (arena) (ninfer_memory_arena_bytes{state=\"used\"})",
           "legendFormat": "{{arena}} used",
           "range": true,
           "refId": "A"
@@ -1870,7 +1870,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(ninfer_memory_arena_bytes{state=\"peak\"}) by (arena)",
+          "expr": "sum by (arena) (ninfer_memory_arena_bytes{state=\"peak\"})",
           "legendFormat": "{{arena}} peak",
           "range": true,
           "refId": "B"
@@ -2222,7 +2222,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(llamaswap_network_bytes_total{direction=\"recv\"}[5m]) by (interface)",
+          "expr": "sum by (interface) (rate(llamaswap_network_bytes_total{direction=\"recv\"}[5m]))",
           "legendFormat": "{{interface}} recv",
           "range": true,
           "refId": "A"
@@ -2232,7 +2232,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "rate(llamaswap_network_bytes_total{direction=\"sent\"}[5m]) by (interface)",
+          "expr": "sum by (interface) (rate(llamaswap_network_bytes_total{direction=\"sent\"}[5m]))",
           "legendFormat": "{{interface}} sent",
           "range": true,
           "refId": "B"

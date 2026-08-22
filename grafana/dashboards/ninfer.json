@@ -215,7 +215,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -553,12 +553,12 @@
       "id": 40,
       "targets": [
         {
-          "expr": "sum(ninfer_memory_arena_bytes{job=\"llama-swap-metrics\",state=\"used\"}) by (arena)",
+          "expr": "sum by (arena) (ninfer_memory_arena_bytes{job=\"llama-swap-metrics\",state=\"used\"})",
           "legendFormat": "{{arena}} used",
           "refId": "A"
         },
         {
-          "expr": "sum(ninfer_memory_arena_bytes{job=\"llama-swap-metrics\",state=\"peak\"}) by (arena)",
+          "expr": "sum by (arena) (ninfer_memory_arena_bytes{job=\"llama-swap-metrics\",state=\"peak\"})",
           "legendFormat": "{{arena}} peak",
           "refId": "B"
         }
@@ -693,17 +693,17 @@
       "id": 51,
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])))",
           "legendFormat": "p99",
           "refId": "C"
         }

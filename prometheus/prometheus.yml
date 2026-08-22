@@ -16,10 +16,8 @@ scrape_configs:
     static_configs:
       - targets: ['qdrant:6333']
 
-  - job_name: 'ninfer'
-    metrics_path: '/metrics'
-    static_configs:
-      - targets: ['ninfer:8087'] # ninfer-serve /metrics (engine, HTTP, speculative, memory)
+  # ninfer metrics are proxied by llama-swap (job 'llama-swap-metrics', model label) —
+  # standalone ninfer:8087 target retired in fe5d6ec (consolidated into llama-swap)
 
   - job_name: 'dcgm-exporter'
     static_configs:

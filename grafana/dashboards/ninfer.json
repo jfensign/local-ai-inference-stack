@@ -53,7 +53,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(ninfer_engine_committed_decode_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "expr": "sum(increase(ninfer_engine_committed_decode_tokens_total{job=\"llama-swap-metrics\"}[1m])) / 60",
           "legendFormat": "decode tok/s",
           "refId": "A"
         }
@@ -100,7 +100,7 @@
       },
       "targets": [
         {
-          "expr": "sum(increase(ninfer_engine_computed_prefill_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "expr": "sum(increase(ninfer_engine_computed_prefill_tokens_total{job=\"llama-swap-metrics\"}[1m])) / 60",
           "legendFormat": "prefill tok/s",
           "refId": "A"
         }
@@ -155,12 +155,12 @@
       },
       "targets": [
         {
-          "expr": "sum(ninfer_engine_running_requests{job=\"ninfer\"})",
+          "expr": "sum(ninfer_engine_running_requests{job=\"llama-swap-metrics\"})",
           "legendFormat": "running",
           "refId": "A"
         },
         {
-          "expr": "sum(ninfer_engine_waiting_requests{job=\"ninfer\"})",
+          "expr": "sum(ninfer_engine_waiting_requests{job=\"llama-swap-metrics\"})",
           "legendFormat": "waiting",
           "refId": "B"
         }
@@ -215,7 +215,7 @@
       },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "A"
         }
@@ -270,7 +270,7 @@
       },
       "targets": [
         {
-          "expr": "clamp(sum(rate(ninfer_speculative_accepted_tokens_total{job=\"ninfer\"}[5m])) / clamp_min(sum(rate(ninfer_speculative_draft_tokens_total{job=\"ninfer\"}[5m])), 1e-9), 0, 1)",
+          "expr": "clamp(sum(rate(ninfer_speculative_accepted_tokens_total{job=\"llama-swap-metrics\"}[5m])) / clamp_min(sum(rate(ninfer_speculative_draft_tokens_total{job=\"llama-swap-metrics\"}[5m])), 1e-9), 0, 1)",
           "legendFormat": "accepted/draft",
           "refId": "A"
         }
@@ -317,7 +317,7 @@
       },
       "targets": [
         {
-          "expr": "sum(rate(ninfer_speculative_rounds_total{job=\"ninfer\"}[5m]))",
+          "expr": "sum(rate(ninfer_speculative_rounds_total{job=\"llama-swap-metrics\"}[5m]))",
           "legendFormat": "rounds/s",
           "refId": "A"
         }
@@ -351,12 +351,12 @@
       "id": 20,
       "targets": [
         {
-          "expr": "sum(increase(ninfer_engine_computed_prefill_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "expr": "sum(increase(ninfer_engine_computed_prefill_tokens_total{job=\"llama-swap-metrics\"}[1m])) / 60",
           "legendFormat": "prefill tok/s",
           "refId": "A"
         },
         {
-          "expr": "sum(increase(ninfer_engine_committed_decode_tokens_total{job=\"ninfer\"}[1m])) / 60",
+          "expr": "sum(increase(ninfer_engine_committed_decode_tokens_total{job=\"llama-swap-metrics\"}[1m])) / 60",
           "legendFormat": "decode tok/s",
           "refId": "B"
         }
@@ -390,12 +390,12 @@
       "id": 21,
       "targets": [
         {
-          "expr": "sum(rate(ninfer_engine_decode_rounds_total{job=\"ninfer\"}[1m]))",
+          "expr": "sum(rate(ninfer_engine_decode_rounds_total{job=\"llama-swap-metrics\"}[1m]))",
           "legendFormat": "rounds/s",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(ninfer_engine_decode_row_rounds_total{job=\"ninfer\"}[1m])) / clamp_min(sum(rate(ninfer_engine_decode_rounds_total{job=\"ninfer\"}[1m])), 1e-9)",
+          "expr": "sum(rate(ninfer_engine_decode_row_rounds_total{job=\"llama-swap-metrics\"}[1m])) / clamp_min(sum(rate(ninfer_engine_decode_rounds_total{job=\"llama-swap-metrics\"}[1m])), 1e-9)",
           "legendFormat": "avg batch size",
           "refId": "B"
         }
@@ -442,27 +442,27 @@
       "id": 30,
       "targets": [
         {
-          "expr": "sum(ninfer_engine_running_requests{job=\"ninfer\"})",
+          "expr": "sum(ninfer_engine_running_requests{job=\"llama-swap-metrics\"})",
           "legendFormat": "running",
           "refId": "A"
         },
         {
-          "expr": "sum(ninfer_engine_prefilling_requests{job=\"ninfer\"})",
+          "expr": "sum(ninfer_engine_prefilling_requests{job=\"llama-swap-metrics\"})",
           "legendFormat": "prefilling",
           "refId": "B"
         },
         {
-          "expr": "sum(ninfer_engine_decode_ready_requests{job=\"ninfer\"})",
+          "expr": "sum(ninfer_engine_decode_ready_requests{job=\"llama-swap-metrics\"})",
           "legendFormat": "decode_ready",
           "refId": "C"
         },
         {
-          "expr": "sum(ninfer_engine_waiting_requests{job=\"ninfer\"})",
+          "expr": "sum(ninfer_engine_waiting_requests{job=\"llama-swap-metrics\"})",
           "legendFormat": "waiting (FIFO ingress)",
           "refId": "D"
         },
         {
-          "expr": "sum(ninfer_http_requests_in_progress{job=\"ninfer\"})",
+          "expr": "sum(ninfer_http_requests_in_progress{job=\"llama-swap-metrics\"})",
           "legendFormat": "http in progress",
           "refId": "E"
         }
@@ -496,17 +496,17 @@
       "id": 31,
       "targets": [
         {
-          "expr": "sum(rate(ninfer_speculative_draft_tokens_total{job=\"ninfer\"}[5m]))",
+          "expr": "sum(rate(ninfer_speculative_draft_tokens_total{job=\"llama-swap-metrics\"}[5m]))",
           "legendFormat": "draft tok/s",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(ninfer_speculative_accepted_tokens_total{job=\"ninfer\"}[5m]))",
+          "expr": "sum(rate(ninfer_speculative_accepted_tokens_total{job=\"llama-swap-metrics\"}[5m]))",
           "legendFormat": "accepted tok/s",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(ninfer_speculative_fallback_steps_total{job=\"ninfer\"}[5m]))",
+          "expr": "sum(rate(ninfer_speculative_fallback_steps_total{job=\"llama-swap-metrics\"}[5m]))",
           "legendFormat": "fallback steps/s",
           "refId": "C"
         }
@@ -553,12 +553,12 @@
       "id": 40,
       "targets": [
         {
-          "expr": "sum(ninfer_memory_arena_bytes{job=\"ninfer\",state=\"used\"}) by (arena)",
+          "expr": "sum(ninfer_memory_arena_bytes{job=\"llama-swap-metrics\",state=\"used\"}) by (arena)",
           "legendFormat": "{{arena}} used",
           "refId": "A"
         },
         {
-          "expr": "sum(ninfer_memory_arena_bytes{job=\"ninfer\",state=\"peak\"}) by (arena)",
+          "expr": "sum(ninfer_memory_arena_bytes{job=\"llama-swap-metrics\",state=\"peak\"}) by (arena)",
           "legendFormat": "{{arena}} peak",
           "refId": "B"
         }
@@ -592,17 +592,17 @@
       "id": 41,
       "targets": [
         {
-          "expr": "ninfer_memory_kv_capacity_page_groups{job=\"ninfer\"}",
+          "expr": "ninfer_memory_kv_capacity_page_groups{job=\"llama-swap-metrics\"}",
           "legendFormat": "KV page groups",
           "refId": "A"
         },
         {
-          "expr": "ninfer_memory_kv_capacity_max_page_groups{job=\"ninfer\"}",
+          "expr": "ninfer_memory_kv_capacity_max_page_groups{job=\"llama-swap-metrics\"}",
           "legendFormat": "KV max page groups",
           "refId": "B"
         },
         {
-          "expr": "ninfer_memory_available_after_startup_bytes{job=\"ninfer\"}",
+          "expr": "ninfer_memory_available_after_startup_bytes{job=\"llama-swap-metrics\"}",
           "legendFormat": "available after startup",
           "refId": "C"
         }
@@ -649,17 +649,17 @@
       "id": 50,
       "targets": [
         {
-          "expr": "sum(rate(ninfer_http_requests_total{job=\"ninfer\",status=~\"2..\"}[1m]))",
+          "expr": "sum(rate(ninfer_http_requests_total{job=\"llama-swap-metrics\",status=~\"2..\"}[1m]))",
           "legendFormat": "2xx",
           "refId": "A"
         },
         {
-          "expr": "sum(rate(ninfer_http_requests_total{job=\"ninfer\",status=~\"4..\"}[1m]))",
+          "expr": "sum(rate(ninfer_http_requests_total{job=\"llama-swap-metrics\",status=~\"4..\"}[1m]))",
           "legendFormat": "4xx",
           "refId": "B"
         },
         {
-          "expr": "sum(rate(ninfer_http_requests_total{job=\"ninfer\",status=~\"5..\"}[1m]))",
+          "expr": "sum(rate(ninfer_http_requests_total{job=\"llama-swap-metrics\",status=~\"5..\"}[1m]))",
           "legendFormat": "5xx",
           "refId": "C"
         }
@@ -693,17 +693,17 @@
       "id": 51,
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.50, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
           "legendFormat": "p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
           "legendFormat": "p95",
           "refId": "B"
         },
         {
-          "expr": "histogram_quantile(0.99, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"ninfer\",route=\"chat_completions\"}[5m])) by (le))",
+          "expr": "histogram_quantile(0.99, sum(rate(ninfer_http_request_duration_seconds_bucket{job=\"llama-swap-metrics\",route=\"chat_completions\"}[5m])) by (le))",
           "legendFormat": "p99",
           "refId": "C"
         }
@@ -737,7 +737,7 @@
       "id": 52,
       "targets": [
         {
-          "expr": "sum(ninfer_http_requests_in_progress{job=\"ninfer\"})",
+          "expr": "sum(ninfer_http_requests_in_progress{job=\"llama-swap-metrics\"})",
           "legendFormat": "in progress",
           "refId": "A"
         }
@@ -783,27 +783,27 @@
       },
       "targets": [
         {
-          "expr": "ninfer_model_info{job=\"ninfer\"}",
+          "expr": "ninfer_model_info{job=\"llama-swap-metrics\"}",
           "legendFormat": "attached",
           "refId": "A"
         },
         {
-          "expr": "ninfer_uptime_seconds{job=\"ninfer\"}",
+          "expr": "ninfer_uptime_seconds{job=\"llama-swap-metrics\"}",
           "legendFormat": "uptime (s)",
           "refId": "B"
         },
         {
-          "expr": "ninfer_max_context_tokens{job=\"ninfer\"}",
+          "expr": "ninfer_max_context_tokens{job=\"llama-swap-metrics\"}",
           "legendFormat": "max context",
           "refId": "C"
         },
         {
-          "expr": "ninfer_max_concurrency{job=\"ninfer\"}",
+          "expr": "ninfer_max_concurrency{job=\"llama-swap-metrics\"}",
           "legendFormat": "max concurrency",
           "refId": "D"
         },
         {
-          "expr": "ninfer_max_pending_requests{job=\"ninfer\"}",
+          "expr": "ninfer_max_pending_requests{job=\"llama-swap-metrics\"}",
           "legendFormat": "max pending",
           "refId": "E"
         }

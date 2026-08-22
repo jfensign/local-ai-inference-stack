@@ -54,3 +54,26 @@ The following services are orchestrated via Docker Compose to provide a complete
 `GET :8087/metrics` (unauthenticated, Prometheus text format 0.0.4) exposes engine runtime stats, device memory arenas, KV cache capacity, HTTP request counters and latency histograms (bounded route labels), and MTP speculative-decoding counters. Prometheus scrapes it via the `ninfer` job in `prometheus/prometheus.yml`, and the **"NInfer - Inference Engine"** Grafana dashboard (`:3033`) is auto-provisioned from `grafana/dashboards/ninfer.json`.
 
 Dashboard queries are pinned to `job="ninfer"`: the existing `llama-swap-exporter` re-exposes the active model's metrics under the `llama-swap-metrics` job with `model`/`upstream` labels, so unfiltered queries would double-count.
+
+## Model Downloading (hf-downloader)
+
+**Convention: all model pulls from the Hugging Face Hub go through the `hf-downloader` container.** This is a hard prerequisite for `goose`, `llama-swap`, and `ninfer` — every one of them consumes artifacts from `${HOME}/models` bound read-only to `/models`, so a download only lands where consumers can see it if it goes through `hf-downloader`.
+
+The service builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer) and writes into `${HOME}/models`. It runs as uid `1000:1000` so downloaded artifacts are owned by the store owner, not root.
+
+```bash
+# Pull a full repo (or a filtered file set) into the model store:
+docker compose run --rm hf-downloader download <owner/repo> \
+    --local-dir /models/<name> [--include "*.gguf"]
+
+# Discover repos/files before pulling:
+docker compose run --rm hf-downloader models ls --search <name>
+docker compose run --rm hf-downloader repo files <owner/repo>
+```
+
+Notes:
+
+- The CLI is **`hf`** — in huggingface_hub 1.x, `huggingface-cli` is a dead deprecation stub (exits 1).
+- High-throughput transfer uses the bundled Xet engine (`HF_XET_HIGH_PERFORMANCE=1` set in compose); the legacy `HF_HUB_ENABLE_HF_TRANSFER` env is deprecated.
+- Set `HF_TOKEN` in the environment for authenticated / gated repos: `HF_TOKEN=hf_... docker compose run --rm hf-downloader download ...`
+- Do **not** download models on the host or into ad-hoc directories; consumers will not see them.

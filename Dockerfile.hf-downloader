@@ -1,0 +1,26 @@
+# hf-downloader image for the llama-stack compose service.
+#
+# Single sanctioned path for pulling models from the Hugging Face Hub.
+# goose / llama-swap / ninfer consume artifacts from ${HOME}/models (bound
+# to /models in llama-swap/ninfer); hf-downloader writes into that same
+# host directory so downloads are immediately visible to all consumers.
+#
+# Tooling:
+#   - huggingface_hub[cli] -> `hf` CLI (note: `huggingface-cli` is a dead
+#     deprecation stub in huggingface_hub 1.x — always invoke `hf`)
+#   - hf-xet               -> default high-throughput transfer engine in
+#     huggingface_hub 1.x (legacy hf_transfer extra removed)
+#
+# Usage:
+#   docker compose run --rm hf-downloader download <owner/repo> \
+#       --local-dir /models/<name> [--include "*.gguf"]
+#   docker compose run --rm hf-downloader models ls --search <name>
+
+FROM python:3.11-slim
+
+RUN pip install --no-cache-dir "huggingface_hub[cli]" \
+    && hf --version
+
+WORKDIR /models
+
+ENTRYPOINT ["hf"]

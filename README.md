@@ -62,7 +62,7 @@ Dashboards (auto-provisioned from `grafana/dashboards/`, admin/admin on `:3033`)
 
 | Dashboard | Scope |
 | :--- | :--- |
-| **llama-swap Full Observability** (`llama-swap.json`) | Consolidated stack view: swap/model health, engine tokens & throughput, GPU (DCGM), host. Regenerate with `tools/build_llama_dashboard.py`. |
+| **llama-swap Full Observability** (`llama-swap.json`) | Consolidated stack view: swap/model health, engine tokens & throughput, GPU (DCGM), host. |
 | **NInfer - Inference Engine** (`ninfer.json`) | Deep engine internals: KV cache, speculative acceptance, latency percentiles, HTTP surface. Pinned to `job="llama-swap-metrics"`. |
 | **Qdrant** (`qdrant.json`) | Vector-DB observability. |
 

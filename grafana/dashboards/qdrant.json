@@ -20,292 +20,862 @@
   "panels": [
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 100,
       "title": "System Status & High-Level Summary",
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [
             {
               "options": {
-                "0": { "color": "green", "text": "Normal" },
-                "1": { "color": "red", "text": "Recovery Mode" }
+                "0": {
+                  "color": "green",
+                  "text": "Normal"
+                },
+                "1": {
+                  "color": "red",
+                  "text": "Recovery Mode"
+                }
               },
               "type": "value"
             }
           ],
-          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
         }
       },
-      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
       "id": 1,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "app_status_recovery_mode", "legendFormat": "Recovery Mode" }],
+      "targets": [
+        {
+          "expr": "app_status_recovery_mode",
+          "legendFormat": "Recovery Mode"
+        }
+      ],
       "title": "Node Status",
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
-      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
       "id": 2,
-      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "collections_total", "legendFormat": "Collections" }],
+      "targets": [
+        {
+          "expr": "collections_total",
+          "legendFormat": "Collections"
+        }
+      ],
       "title": "Total Collections",
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } },
-      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "purple",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
       "id": 3,
-      "options": { "colorMode": "value", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "collections_vector_total", "legendFormat": "Vectors" }],
+      "targets": [
+        {
+          "expr": "collections_vector_total",
+          "legendFormat": "Vectors"
+        }
+      ],
       "title": "Total Vectors",
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "custom": {}, "unit": "bytes" } },
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {},
+          "unit": "bytes"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
       "id": 4,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "memory_resident_bytes", "legendFormat": "Resident RAM" }],
+      "targets": [
+        {
+          "expr": "memory_resident_bytes",
+          "legendFormat": "Resident RAM"
+        }
+      ],
       "title": "Memory Resident (RSS)",
       "type": "stat"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [
-            { "options": { "0": { "color": "orange", "text": "Disabled (Single Node)" }, "1": { "color": "green", "text": "Enabled" } }, "type": "value" }
+            {
+              "options": {
+                "0": {
+                  "color": "orange",
+                  "text": "Disabled (Single Node)"
+                },
+                "1": {
+                  "color": "green",
+                  "text": "Enabled"
+                }
+              },
+              "type": "value"
+            }
           ]
         }
       },
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
       "id": 5,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "reduceOptions": { "calcs": ["lastNotNull"] }, "textMode": "auto" },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "cluster_enabled", "legendFormat": "Cluster State" }],
+      "targets": [
+        {
+          "expr": "cluster_enabled",
+          "legendFormat": "Cluster State"
+        }
+      ],
       "title": "Cluster Mode",
       "type": "stat"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
       "id": 200,
       "title": "Collection & Vector Distribution",
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 }, "unit": "short" } },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
       "id": 6,
-      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "collection_vectors", "legendFormat": "Vectors: {{collection}} ({{vector}})" },
-        { "expr": "collection_points", "legendFormat": "Points: {{id}}" }
+        {
+          "expr": "collection_vectors",
+          "legendFormat": "Vectors: {{collection}} ({{vector}})"
+        },
+        {
+          "expr": "collection_points",
+          "legendFormat": "Points: {{id}}"
+        }
       ],
       "title": "Vectors and Points per Collection",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "displayMode": "basic" } } },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "displayMode": "basic"
+          }
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
       "id": 7,
-      "options": { "cellHeight": "sm", "footer": { "show": false }, "showHeader": true },
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "showHeader": true
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "collection_vectors", "format": "table", "instant": true, "legendFormat": "" }
+        {
+          "expr": "collection_vectors",
+          "format": "table",
+          "instant": true,
+          "legendFormat": ""
+        }
       ],
       "title": "Collection Vector Summary Table",
       "type": "table"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
       "id": 300,
       "title": "Ingestion, Optimizations & Write Queues",
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "lineInterpolation": "smooth" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 15 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 15
+      },
       "id": 8,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "collection_running_optimizations", "legendFormat": "{{id}}" }],
+      "targets": [
+        {
+          "expr": "collection_running_optimizations",
+          "legendFormat": "{{id}}"
+        }
+      ],
       "title": "Active Optimizations per Collection",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 15 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 15
+      },
       "id": 9,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "collection_update_queue_length", "legendFormat": "{{id}}" }],
+      "targets": [
+        {
+          "expr": "collection_update_queue_length",
+          "legendFormat": "{{id}}"
+        }
+      ],
       "title": "Update Queue Length (Pending Writes)",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 15 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 15
+      },
       "id": 10,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "collection_update_queue_deferred_points", "legendFormat": "{{id}}" }],
+      "targets": [
+        {
+          "expr": "collection_update_queue_deferred_points",
+          "legendFormat": "{{id}}"
+        }
+      ],
       "title": "Deferred Points (Un-optimized In-Read)",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 22 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
       "id": 400,
       "title": "Memory Allocation (jemalloc Diagnostics)",
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 }, "unit": "bytes" } },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 23 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
+          "unit": "bytes"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
       "id": 11,
-      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "memory_allocated_bytes", "legendFormat": "Allocated (Requested by App)" },
-        { "expr": "memory_active_bytes", "legendFormat": "Active (Pages Allocated)" },
-        { "expr": "memory_resident_bytes", "legendFormat": "Resident (Physical RAM - RSS)" },
-        { "expr": "memory_retained_bytes", "legendFormat": "Retained (Virtual Mappings)" },
-        { "expr": "memory_metadata_bytes", "legendFormat": "Metadata (jemalloc Overhead)" }
+        {
+          "expr": "memory_allocated_bytes",
+          "legendFormat": "Allocated (Requested by App)"
+        },
+        {
+          "expr": "memory_active_bytes",
+          "legendFormat": "Active (Pages Allocated)"
+        },
+        {
+          "expr": "memory_resident_bytes",
+          "legendFormat": "Resident (Physical RAM - RSS)"
+        },
+        {
+          "expr": "memory_retained_bytes",
+          "legendFormat": "Retained (Virtual Mappings)"
+        },
+        {
+          "expr": "memory_metadata_bytes",
+          "legendFormat": "Metadata (jemalloc Overhead)"
+        }
       ],
       "title": "Qdrant Memory Breakdown",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
       "id": 500,
       "title": "OS Process & Kernel Limits",
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 6, "x": 0, "y": 32 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 0,
+        "y": 32
+      },
       "id": 12,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
-      "targets": [{ "expr": "process_threads", "legendFormat": "Active Threads" }],
+      "targets": [
+        {
+          "expr": "process_threads",
+          "legendFormat": "Active Threads"
+        }
+      ],
       "title": "Process Threads",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 6, "x": 6, "y": 32 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 6,
+        "y": 32
+      },
       "id": 13,
-      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "process_open_fds", "legendFormat": "Open FDs" },
-        { "expr": "process_max_fds", "legendFormat": "Max FDs Limit" }
+        {
+          "expr": "process_open_fds",
+          "legendFormat": "Open FDs"
+        },
+        {
+          "expr": "process_max_fds",
+          "legendFormat": "Max FDs Limit"
+        }
       ],
       "title": "File Descriptors Usage vs Limit",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 7, "w": 6, "x": 12, "y": 32 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 12,
+        "y": 32
+      },
       "id": 14,
-      "options": { "legend": { "displayMode": "table", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "process_open_mmaps", "legendFormat": "Open MMaps" },
-        { "expr": "system_max_mmaps", "legendFormat": "System Max MMaps" }
+        {
+          "expr": "process_open_mmaps",
+          "legendFormat": "Open MMaps"
+        },
+        {
+          "expr": "system_max_mmaps",
+          "legendFormat": "System Max MMaps"
+        }
       ],
       "title": "Memory Maps (mmap) vs System Limit",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "ops" } },
-      "gridPos": { "h": 7, "w": 6, "x": 18, "y": 32 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "ops"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 6,
+        "x": 18,
+        "y": 32
+      },
       "id": 15,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "rate(process_minor_page_faults_total[5m])", "legendFormat": "Minor Faults/s (RAM)" },
-        { "expr": "rate(process_major_page_faults_total[5m])", "legendFormat": "Major Faults/s (Disk)" }
+        {
+          "expr": "rate(process_minor_page_faults_total[5m])",
+          "legendFormat": "Minor Faults/s (RAM)"
+        },
+        {
+          "expr": "rate(process_major_page_faults_total[5m])",
+          "legendFormat": "Major Faults/s (Disk)"
+        }
       ],
       "title": "Page Faults Rate",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 39 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
       "id": 600,
       "title": "Cluster Replicas, Transfers & Snapshots",
       "type": "row"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 40 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 40
+      },
       "id": 16,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "collection_active_replicas_min", "legendFormat": "Active Replicas Min" },
-        { "expr": "collection_active_replicas_max", "legendFormat": "Active Replicas Max" },
-        { "expr": "collection_dead_replicas", "legendFormat": "Dead Replicas" }
+        {
+          "expr": "collection_active_replicas_min",
+          "legendFormat": "Active Replicas Min"
+        },
+        {
+          "expr": "collection_active_replicas_max",
+          "legendFormat": "Active Replicas Max"
+        },
+        {
+          "expr": "collection_dead_replicas",
+          "legendFormat": "Dead Replicas"
+        }
       ],
       "title": "Shard Replicas Health",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 40 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 40
+      },
       "id": 17,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "collection_shard_transfer_incoming", "legendFormat": "Incoming Transfers ({{id}})" },
-        { "expr": "collection_shard_transfer_outgoing", "legendFormat": "Outgoing Transfers ({{id}})" }
+        {
+          "expr": "collection_shard_transfer_incoming",
+          "legendFormat": "Incoming Transfers ({{id}})"
+        },
+        {
+          "expr": "collection_shard_transfer_outgoing",
+          "legendFormat": "Outgoing Transfers ({{id}})"
+        }
       ],
       "title": "Shard Transfers",
       "type": "timeseries"
     },
     {
-      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line" }, "unit": "short" } },
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 40 },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line"
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 40
+      },
       "id": 18,
-      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "pluginVersion": "10.0.0",
       "targets": [
-        { "expr": "snapshot_creation_running", "legendFormat": "Running Snapshot Creations" },
-        { "expr": "snapshot_recovery_running", "legendFormat": "Running Snapshot Recoveries" },
-        { "expr": "snapshot_created_total", "legendFormat": "Total Created ({{id}})" }
+        {
+          "expr": "snapshot_creation_running",
+          "legendFormat": "Running Snapshot Creations"
+        },
+        {
+          "expr": "snapshot_recovery_running",
+          "legendFormat": "Running Snapshot Recoveries"
+        },
+        {
+          "expr": "snapshot_created_total",
+          "legendFormat": "Total Created ({{id}})"
+        }
       ],
       "title": "Snapshot Operations",
       "type": "timeseries"
@@ -314,11 +884,18 @@
   "refresh": "10s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["qdrant", "vector-db", "prometheus"],
+  "tags": [
+    "qdrant",
+    "vector-db",
+    "prometheus"
+  ],
   "templating": {
     "list": [
       {
-        "current": { "selected": true, "value": "default" },
+        "current": {
+          "selected": true,
+          "value": "default"
+        },
         "hide": 0,
         "label": "Data Source",
         "name": "DS_PROMETHEUS",
@@ -329,7 +906,10 @@
       }
     ]
   },
-  "time": { "from": "now-1h", "to": "now" },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Qdrant Full Observability Dashboard",

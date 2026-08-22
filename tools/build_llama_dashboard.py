@@ -143,7 +143,7 @@ r.add(stat("llama-swap Up", 0, 0, "llama_swap_up",
            thresholds=[{"color": "red", "value": None}, {"color": "green", "value": 1}]))
 r.add(stat("Models Up", 4, 0, "count(llama_swap_model_up == 1)"))
 r.add(stat("Scrape Duration p95", 8, 0,
-           'histogram_quantile(0.95, sum(rate(llama_swap_scrape_duration_seconds_bucket[5m])) by (le))',
+           'histogram_quantile(0.95, sum by (le) (rate(llama_swap_scrape_duration_seconds_bucket[5m])))',
            unit="s", thresholds=[{"color": "green", "value": None}, {"color": "yellow", "value": 0.5}, {"color": "red", "value": 2}]))
 r.add(stat("Scrape Errors /s", 12, 0, "rate(llama_swap_scrape_errors_total[5m])",
            thresholds=[{"color": "green", "value": None}, {"color": "red", "value": 0.001}]))
@@ -173,29 +173,29 @@ r.add(stat("Engine Uptime", 20, 0, "max(ninfer_uptime_seconds)", unit="s"))
 r.add(ts(
     "Token Throughput (tokens/s, prefill vs decode)", 0, 4,
     [
-        tgt("sum(rate(ninfer_engine_computed_prefill_tokens_total[5m])) by (model)", "{{model}} prefill"),
-        tgt("sum(rate(ninfer_engine_committed_decode_tokens_total[5m])) by (model)", "{{model}} decode", ref="B"),
+        tgt("sum by (model) (rate(ninfer_engine_computed_prefill_tokens_total[5m]))", "{{model}} prefill"),
+        tgt("sum by (model) (rate(ninfer_engine_committed_decode_tokens_total[5m]))", "{{model}} decode", ref="B"),
     ],
     unit="cps",
 ))
 r.add(ts(
     "Engine Requests (running / waiting / prefilling)", 12, 4,
     [
-        tgt("sum(ninfer_engine_running_requests) by (model)", "{{model}} running"),
-        tgt("sum(ninfer_engine_waiting_requests) by (model)", "{{model}} waiting", ref="B"),
-        tgt("sum(ninfer_engine_prefilling_requests) by (model)", "{{model}} prefilling", ref="C"),
+        tgt("sum by (model) (ninfer_engine_running_requests)", "{{model}} running"),
+        tgt("sum by (model) (ninfer_engine_waiting_requests)", "{{model}} waiting", ref="B"),
+        tgt("sum by (model) (ninfer_engine_prefilling_requests)", "{{model}} prefilling", ref="C"),
     ],
 ))
 r.add(ts(
     "HTTP Requests by Status (req/s)", 0, 12,
-    [tgt('sum(rate(ninfer_http_requests_total[5m])) by (status, model)', "{{status}} {{model}}")],
+    [tgt('sum by (status, model) (rate(ninfer_http_requests_total[5m]))', "{{status}} {{model}}")],
     unit="reqps",
 ))
 r.add(ts(
     "Speculative Decoding (accepted vs draft tokens/s)", 12, 12,
     [
-        tgt("sum(rate(ninfer_speculative_accepted_tokens_total[5m])) by (model)", "{{model}} accepted"),
-        tgt("sum(rate(ninfer_speculative_draft_tokens_total[5m])) by (model)", "{{model}} draft", ref="B"),
+        tgt("sum by (model) (rate(ninfer_speculative_accepted_tokens_total[5m]))", "{{model}} accepted"),
+        tgt("sum by (model) (rate(ninfer_speculative_draft_tokens_total[5m]))", "{{model}} draft", ref="B"),
     ],
     unit="cps",
 ))
@@ -260,8 +260,8 @@ r.add(stat("PCIe Replay Counter", 0, 32, "max(DCGM_FI_DEV_PCIE_REPLAY_COUNTER)",
 r.add(ts(
     "Engine Memory Arena (used / peak, by arena)", 6, 32,
     [
-        tgt('sum(ninfer_memory_arena_bytes{state="used"}) by (arena)', "{{arena}} used"),
-        tgt('sum(ninfer_memory_arena_bytes{state="peak"}) by (arena)', "{{arena}} peak", ref="B"),
+        tgt('sum by (arena) (ninfer_memory_arena_bytes{state="used"})', "{{arena}} used"),
+        tgt('sum by (arena) (ninfer_memory_arena_bytes{state="peak"})', "{{arena}} peak", ref="B"),
     ],
     unit="bytes",
 ))
@@ -297,8 +297,8 @@ r.add(ts(
 r.add(ts(
     "Network (B/s)", 12, 8,
     [
-        tgt('rate(llamaswap_network_bytes_total{direction="recv"}[5m]) by (interface)', "{{interface}} recv"),
-        tgt('rate(llamaswap_network_bytes_total{direction="sent"}[5m]) by (interface)', "{{interface}} sent", ref="B"),
+        tgt('sum by (interface) (rate(llamaswap_network_bytes_total{direction="recv"}[5m]))', "{{interface}} recv"),
+        tgt('sum by (interface) (rate(llamaswap_network_bytes_total{direction="sent"}[5m]))', "{{interface}} sent", ref="B"),
     ],
     unit="Bps",
 ))

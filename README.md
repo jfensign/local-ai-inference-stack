@@ -46,6 +46,103 @@ Two `qwen3.8-27b` variants registered in `llama-swap/config.yaml`, served from `
 
 `/v1/models`, `/running`, `/health` on `:8088` inspect the swap layer.
 
+## Getting Started
+
+### 1. Downloading models
+
+All Hugging Face pulls go through the `hf-downloader` container (convention and details in [Model Downloading](#model-downloading-hf-downloader)). The CLI is `hf` (huggingface_hub 1.x):
+
+```bash
+# Discover a repo and inspect its contents
+docker compose run --rm hf-downloader models ls --search <name>
+docker compose run --rm hf-downloader repo files <owner/repo>
+
+# Pull a whole repo into the shared model store
+docker compose run --rm hf-downloader download <owner/repo> --local-dir /models/<name>
+
+# Pull a single artifact (e.g. a .ninfer file)
+docker compose run --rm hf-downloader download <owner/repo> <name>.ninfer --local-dir /models/NInfer
+
+# Filtered pull (glob include)
+docker compose run --rm hf-downloader download <owner/repo> --local-dir /models/<name> --include "*.safetensors"
+```
+
+Downloads land in `${HOME}/models`, owned by the host user — immediately visible to every consumer container.
+
+### 2. Adding a model
+
+A model becomes serveable once its `.ninfer` artifact is in the shared store and it is registered in `llama-swap/config.yaml` (bind-mounted into the container; llama-swap loads it at startup and spawns one `ninfer-serve` subprocess per registered model).
+
+```bash
+# 1. Artifact in the store (see step 1)
+ls ~/models/NInfer/<name>.ninfer
+
+# 2. Register it — append under models: in llama-swap/config.yaml
+```
+
+```yaml
+# llama-swap/config.yaml
+models:
+  qwen3.8-27b:
+    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer --model-id qwen3.8-27b --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 131072 --kv-capacity auto --kv-dtype int8 --vision"
+  # new model entry:
+  my-new-model:
+    cmd: "ninfer-serve /models/NInfer/my_new_model.ninfer --model-id my-new-model --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 131072 --kv-capacity auto --kv-dtype int8 --vision"
+```
+
+```bash
+# 3. Reload (config is read at startup)
+docker compose restart llama-swap
+
+# 4. Verify
+curl -s localhost:8088/v1/models      # both ids listed
+curl -s localhost:8088/running        # new model: state=ready once loaded
+```
+
+Notes:
+
+- `--model-id` is the id clients address the model by (use this in goose `GOOSE_MODEL` / OpenAI clients).
+- `--port ${PORT}` is substituted by llama-swap per subprocess — keep it as-is.
+- Drop flags to taste: `--spec mtp --draft-tokens 3 --lm-head-draft` (speculative decoding), `--kv-dtype int8 --kv-capacity auto` (KV cache), `--max-context` (context window), `--vision` (multimodal).
+- Only one model loads to GPU at a time per concurrency of use — llama-swap hot-swaps the rest (`globalTTL: 600`).
+
+### 3. Running the goose CLI
+
+The `goose` container runs `goose serve` (REST/ACP API on `:3284`). Drive it either through the CLI inside the container or the API. The default provider/model come from `goose/config.yaml` (`openai` → `http://llama-swap:8080`, so runs consume the swap layer above).
+
+```bash
+# One-shot agent run (quiet mode: model response only on stdout)
+docker compose exec goose goose run -t "Summarize the llama-swap architecture in 5 bullets" -q
+
+# Interactive chat session (TUI; /help inside)
+docker compose exec -it goose goose session
+
+# Resume the most recent session (or a named one)
+docker compose exec -it goose goose session --resume
+docker compose exec -it goose goose session -n research --resume
+
+# Pipe instructions / stdin
+echo "List the registered models" | docker compose exec -i goose goose run -i - -q
+
+# Override provider/model for a single run (e.g. host Ollama instead of llama-swap)
+docker compose exec goose goose run -t "ping" -q \
+  --provider ollama --model "hf.co/unsloth/Qwen3.6-27B-GGUF:UD-Q6_K_XL"
+
+# Long-running autonomous session (detached; logs: docker logs <name>)
+docker compose run -d --name research goose goose run -t "Investigate <topic> and write findings to /workspace/findings.md"
+```
+
+```bash
+# REST surface (goose serve) — health check:
+curl -s localhost:3284                # ok
+```
+
+Notes:
+
+- Sessions persist as `.jsonl` under `./goose/workspace` (the container's `/workspace`); that's also where agent file work lands.
+- `-s/--interactive` continues into interactive mode after initial input; `-r/--resume` keeps execution state across runs.
+- Extensions (developer, todo, skills, goosedocs, qdrant_rag, playwright, reddit) are pre-wired in `goose/config.yaml`; ad-hoc stdio servers can be added per-run with `--with-extension "CMD ..."`.
+
 ## NInfer Runtime (Unified)
 
 Since the shared-model-store consolidation there is **no standalone `ninfer` service**: the `Dockerfile` builds llama-swap's `unified-cuda` runtime with the `ninfer-serve` binary copied from a local `ninfer:local` build stage. llama-swap spawns one `ninfer-serve` subprocess per registered model on `127.0.0.1` inside the container.
@@ -75,22 +172,11 @@ Dashboards (auto-provisioned from `grafana/dashboards/`, admin/admin on `:3033`)
 
 ## Model Downloading (hf-downloader)
 
-**Convention: all model pulls from the Hugging Face Hub go through the `hf-downloader` container.** This is a hard prerequisite for `goose`, `llama-swap`, and the ninfer runtime — every one of them consumes artifacts from `${HOME}/models` bound read-only to `/models`, so a download only lands where consumers can see it if it goes through `hf-downloader`.
+**Convention: all model pulls from the Hugging Face Hub go through the `hf-downloader` container.** This is a hard prerequisite for `goose`, `llama-swap`, and the ninfer runtime — every one of them consumes artifacts from `${HOME}/models` bound read-only to `/models`, so a download only lands where consumers can see it if it goes through `hf-downloader`. See [Getting Started — Downloading models](#1-downloading-models) for the commands.
 
-The service builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer) and writes into `${HOME}/models`. It runs as uid `1000:1000` so downloaded artifacts are owned by the store owner, not root.
+Implementation details:
 
-```bash
-# Pull a full repo (or a filtered file set) into the model store:
-docker compose run --rm hf-downloader download <owner/repo> \
-    --local-dir /models/<name> [--include "*.gguf"]
-
-# Discover repos/files before pulling:
-docker compose run --rm hf-downloader models ls --search <name>
-docker compose run --rm hf-downloader repo files <owner/repo>
-```
-
-Notes:
-
+- Builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer); writes into `${HOME}/models` as uid `1000:1000` so artifacts are owned by the store owner, not root.
 - The CLI is **`hf`** — in huggingface_hub 1.x, `huggingface-cli` is a dead deprecation stub (exits 1).
 - High-throughput transfer uses the bundled Xet engine (`HF_XET_HIGH_PERFORMANCE=1` set in compose); the legacy `HF_HUB_ENABLE_HF_TRANSFER` env is deprecated.
 - `HF_HOME=/models/.hf` keeps the xet/HTTP cache on the writable mount and reuses it across runs.

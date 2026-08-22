@@ -3,7 +3,10 @@
 # Mounted at /home/goose/.config/goose/config.yaml (see docker-compose.yml).
 #
 # Provider chain:
-#   goose -> llama-swap:8080 (OpenAI-compatible swap layer) -> ninfer:8087
+#   goose -> llama-swap:8080 (OpenAI-compatible swap layer) -> ninfer-serve
+#   (ninfer-serve subprocess on 127.0.0.1 inside the llama-swap container;
+#   there is no standalone ninfer service since the unified-runtime
+#   consolidation — see README "NInfer Runtime (Unified)")
 #
 # goose 1.30.0 compatibility notes (verified against the shipped binary):
 #   - The CLI resolves provider/model from the FLAT keys GOOSE_PROVIDER /

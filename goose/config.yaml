@@ -22,7 +22,8 @@
 
 # --- Provider (llama-swap swap layer, OpenAI-compatible) ---
 GOOSE_PROVIDER: openai
-GOOSE_MODEL: qwen3.8-27b
+GOOSE_MODEL: qwen3.8-27b-uncensored
+GOOSE_CONTEXT_LIMIT: 180000
 OPENAI_HOST: http://llama-swap:8080
 OPENAI_API_KEY: sk-local
 

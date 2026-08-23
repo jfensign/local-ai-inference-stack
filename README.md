@@ -22,7 +22,7 @@ Applied per model in `llama-swap/config.yaml` (each entry spawns its own `ninfer
 
 ## Services Architecture
 
-Orchestrated via `docker-compose.yml`; all model consumers bind `${HOME}/models` read-only at `/models`:
+Orchestrated via `docker-compose.yml`; all model consumers bind the project model store `./models` read-only at `/models`:
 
 | Service | Purpose | Ports |
 | :--- | :--- | :--- |
@@ -37,7 +37,7 @@ Orchestrated via `docker-compose.yml`; all model consumers bind `${HOME}/models`
 
 ### Models
 
-Two `qwen3.8-27b` variants registered in `llama-swap/config.yaml`, served from `${HOME}/models/NInfer/`:
+Two `qwen3.8-27b` variants registered in `llama-swap/config.yaml`, served from the project store `./models/NInfer/`:
 
 | Model id | Artifact |
 | :--- | :--- |
@@ -67,7 +67,7 @@ docker compose run --rm hf-downloader download <owner/repo> <name>.ninfer --loca
 docker compose run --rm hf-downloader download <owner/repo> --local-dir /models/<name> --include "*.safetensors"
 ```
 
-Downloads land in `${HOME}/models`, owned by the host user — immediately visible to every consumer container.
+Downloads land in the project store `./models` — immediately visible to every consumer container.
 
 ### 2. Adding a model
 
@@ -148,7 +148,7 @@ Notes:
 Since the shared-model-store consolidation there is **no standalone `ninfer` service**: the `Dockerfile` builds llama-swap's `unified-cuda` runtime with the `ninfer-serve` binary copied from a local `ninfer:local` build stage. llama-swap spawns one `ninfer-serve` subprocess per registered model on `127.0.0.1` inside the container.
 
 - **Build:** `docker compose build llama-swap` — requires `ninfer:local` to be built first from the local clone in `./ninfer` (its own git repo, not tracked here); needs an `sm_120a` GPU (RTX 5090) and CUDA 13.1+.
-- **Artifacts:** `/models/NInfer/*.ninfer` (host `~/models`, bind-mounted read-only).
+- **Artifacts:** `/models/NInfer/*.ninfer` (project store `./models`, bind-mounted read-only).
 - **Pinned source:** local commits `fa2c9b4` (Prometheus metrics export) + `275d504` (HTTP status normalization fix) on top of upstream `a05746a`. The pinned state lives in the `./ninfer` clone; a fresh checkout of the public upstream lacks the metrics commits.
 
 ## Telemetry
@@ -172,13 +172,14 @@ Dashboards (auto-provisioned from `grafana/dashboards/`, admin/admin on `:3033`)
 
 ## Model Downloading (hf-downloader)
 
-**Convention: all model pulls from the Hugging Face Hub go through the `hf-downloader` container.** This is a hard prerequisite for `goose`, `llama-swap`, and the ninfer runtime — every one of them consumes artifacts from `${HOME}/models` bound read-only to `/models`, so a download only lands where consumers can see it if it goes through `hf-downloader`. See [Getting Started — Downloading models](#1-downloading-models) for the commands.
+**Convention: all model pulls from the Hugging Face Hub go through the `hf-downloader` container.** This is a hard prerequisite for `goose`, `llama-swap`, and the ninfer runtime — every one of them consumes artifacts from the project store `./models` bound read-only to `/models`, so a download only lands where consumers can see it if it goes through `hf-downloader`. See [Getting Started — Downloading models](#1-downloading-models) for the commands.
 
 Implementation details:
 
-- Builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer); writes into `${HOME}/models` as uid `1000:1000` so artifacts are owned by the store owner, not root.
+- Builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer); writes into the project store `./models` (container runs as root; the store directory is host-user-owned for on-host management).
 - The CLI is **`hf`** — in huggingface_hub 1.x, `huggingface-cli` is a dead deprecation stub (exits 1).
 - High-throughput transfer uses the bundled Xet engine (`HF_XET_HIGH_PERFORMANCE=1` set in compose); the legacy `HF_HUB_ENABLE_HF_TRANSFER` env is deprecated.
 - `HF_HOME=/models/.hf` keeps the xet/HTTP cache on the writable mount and reuses it across runs.
 - Set `HF_TOKEN` in the environment for authenticated / gated repos: `HF_TOKEN=hf_... docker compose run --rm hf-downloader download ...`
 - Do **not** download models on the host or into ad-hoc directories; consumers will not see them.
+- **Store policy:** `./models` is the stack's single source of truth — consumers bind it read-only, `hf-downloader` is the sole writer. Host-side model dirs (e.g. `$HOME/models`, which still serves host tooling) are deliberately **not** mounted into the stack's containers: the stack stays relocatable (the repo dir contains everything it needs) and a download is always visible to consumers. The derived HF cache `.hf` (~150MB) is kept inside the store so offline RAG (`FASTEMBED_CACHE_PATH`) is turnkey on a fresh machine; it is disposable and re-downloadable.

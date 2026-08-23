@@ -176,7 +176,7 @@ Dashboards (auto-provisioned from `grafana/dashboards/`, admin/admin on `:3033`)
 
 Implementation details:
 
-- Builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer); writes into the project store `./models` (container runs as root; the store directory is host-user-owned for on-host management).
+- Builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer); writes into the project store `./models` as the host user (first-user uid `1000` by default; override with `HOST_UID`/`HOST_GID` in `.env`) so artifacts are host-manageable, not root-owned.
 - The CLI is **`hf`** — in huggingface_hub 1.x, `huggingface-cli` is a dead deprecation stub (exits 1).
 - High-throughput transfer uses the bundled Xet engine (`HF_XET_HIGH_PERFORMANCE=1` set in compose); the legacy `HF_HUB_ENABLE_HF_TRANSFER` env is deprecated.
 - `HF_HOME=/models/.hf` keeps the xet/HTTP cache on the writable mount and reuses it across runs.

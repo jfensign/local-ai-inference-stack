@@ -122,7 +122,7 @@ extensions:
       # directly by fastembed's define_cache_dir / TextEmbedding, so the env
       # var reaches the library). The HF hub cache layout is
       # <cache_dir>/models--<org>--<repo>/, and the models live under
-      # ${HOME}/models/.hf/hub (hf-downloader sets HF_HOME=/models/.hf, so
+      # ./models/.hf/hub in the store (hf-downloader sets HF_HOME=/models/.hf, so
       # hub/ is the cache root). Pointing this one level higher (/models/.hf)
       # makes snapshot_download look for models--qdrant--all-MiniLM-L6-v2-onnx
       # in the wrong place and fail offline.

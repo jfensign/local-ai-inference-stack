@@ -1,6 +1,6 @@
 x-model-volume: &model-volume
   type: bind
-  source: ${HOME}/models
+  source: ./models
   target: /models
   read_only: true
 
@@ -8,25 +8,19 @@ services:
   hf-downloader:
     # Single sanctioned path for pulling models from the Hugging Face Hub.
     # PREREQUISITE: goose, llama-swap, and ninfer consume artifacts from
-    # ${HOME}/models — all model downloads MUST go through this container so
-    # artifacts land in the store those services bind-read.
+    # ./models (the repo's model store) — all model downloads MUST go through
+    # this container so artifacts land in the store those services bind-read.
     build:
       context: .
       dockerfile: Dockerfile.hf-downloader
     image: hf-downloader:local
     container_name: hf-downloader
     volumes:
-      - ${HOME}/models:/models
-    # Run as the host user (joseph, uid 1000) so downloaded artifacts are
-    # owned by the store owner, not root.
-    user: "1000:1000"
+      - ./models:/models
     environment:
-      # Container runs as uid 1000 but the image sets HOME=/root; xet caches
-      # under $HOME so HOME must point at the host user's home.
-      - HOME=/home/joseph
       # Cache (xet + HTTP) lives under the mounted /models so it is writable
-      # by uid 1000 inside the container (host $HOME/.cache is NOT mounted)
-      # and is reused across runs.
+      # inside the container (the image's own $HOME is not mounted) and is
+      # reused across runs.
       - HF_HOME=/models/.hf
       - HF_XET_HIGH_PERFORMANCE=1
       - HF_TOKEN=${HF_TOKEN:-}

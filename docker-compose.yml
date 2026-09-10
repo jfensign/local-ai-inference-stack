@@ -154,6 +154,52 @@ services:
     volumes:
       - ./qdrant_data:/qdrant/storage
 
+  siyuan-ai-companion:
+    # RAG proxy over SiYuan notes: embeds note blocks into qdrant, retrieves
+    # similar blocks per request, injects them into the prompt, and forwards
+    # to an OpenAI-compatible LLM endpoint. Sits on the same RAG path as
+    # goose's qdrant_rag extension (shared qdrant, distinct collection).
+    image: siyuan-ai-companion:local
+    # Upstream image + local patch (Content-Length/timeout fix, see companion/Dockerfile).
+    # NOTE: the `testing` tag from the upstream docs is absent on Docker Hub;
+    # the build bases off :latest.
+    build:
+      context: companion
+      dockerfile: Dockerfile
+    container_name: siyuan-ai-companion
+    restart: always
+    environment:
+      - SIYUAN_URL=http://siyuan:6806
+      # SiYuan api token (workspace conf.json -> api.token); same token goose uses.
+      - SIYUAN_TOKEN=REDACTED
+      - QDRANT_LOCATION=http://qdrant:6333
+      - QDRANT_COLLECTION_NAME=siyuan_ai_companion
+      # LLM backend: local llama-swap swap layer (OpenAI-compatible), not the
+      # public OpenAI API — 5090 protocol (GPU-first, local inference).
+      - OPENAI_URL=http://llama-swap:8080/v1/
+      # pydantic binding is openai_token -> OPENAI_TOKEN (not OPENAI_API_KEY).
+      # llama-swap accepts any key; sk-local matches the goose convention.
+      - OPENAI_TOKEN=sk-local
+      # Auth token clients must present to call the companion's own API.
+      - COMPANION_TOKEN=REDACTED
+      # Gated embedding models: reuse the stack-wide HF token (see hf-downloader).
+      - HUGGINGFACE_HUB_TOKEN=${HF_TOKEN:-}
+      # GPU is fully reserved by llama-swap; embeddings run on CPU.
+      # - CUDA_VISIBLE_DEVICES=""
+      # - COMPANION_LOGGING_LEVEL=INFO
+    depends_on:
+      - siyuan
+      - qdrant
+      - llama-swap
+    ports:
+      # Host 8000 is taken by mcpo-server (foreign project); container side stays 8000.
+      - "8001:8000"
+    # siyuan + llama-swap live on ai-net; qdrant on the project default network.
+    # Companion consumes all three, so it must join both (same pattern as goose).
+    networks:
+      - default
+      - ai-net
+
   # --- TELEMETRY STACK ---
 
   prometheus:

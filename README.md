@@ -28,7 +28,9 @@ Orchestrated via `docker-compose.yml`; all model consumers bind the project mode
 | :--- | :--- | :--- |
 | **llama-swap** | Unified inference entrypoint: OpenAI-compatible proxy over `ninfer-serve` subprocesses, model hot-swap, per-model lifecycle. | `8088` |
 | **goose** | Block's agent CLI in long-running server mode (`goose serve`); OpenAI provider → llama-swap; MCP extensions (developer, todo, skills, goosedocs, qdrant_rag, playwright, reddit). | `3284` |
-| **qdrant** | High-performance vector database for RAG (compliance collections + agent memory). | `6333` (REST), `6334` (gRPC) |
+| **siyuan** | SiYuan knowledge base (note workspace persisted at `./workspace`); API token in `workspace/conf/conf.json -> api.token`. | `6806` |
+| **siyuan-ai-companion** | RAG proxy over SiYuan notes: embeds note blocks into qdrant (`siyuan_ai_companion` collection), retrieves + injects context per request, forwards to llama-swap. Local patched image (`companion/` Dockerfile) fixes a Content-Length forwarding bug + forward timeout. | `8001` (container `8000`) |
+| **qdrant** | High-performance vector database for RAG (compliance collections + agent memory + `siyuan_ai_companion`). | `6333` (REST), `6334` (gRPC) |
 | **hf-downloader** | Single sanctioned Hugging Face model pull path (see below). Ephemeral — `docker compose run --rm`. | — |
 | **llama-swap-exporter** | Scrapes llama-swap (`/metrics` re-exposes active model's `ninfer_*` series) and host; pushes to Prometheus. | `9101` |
 | **prometheus** | Time-series DB for system/application metrics. | `9090` |
@@ -183,3 +185,14 @@ Implementation details:
 - Set `HF_TOKEN` in the environment for authenticated / gated repos: `HF_TOKEN=hf_... docker compose run --rm hf-downloader download ...`
 - Do **not** download models on the host or into ad-hoc directories; consumers will not see them.
 - **Store policy:** `./models` is the stack's single source of truth — consumers bind it read-only, `hf-downloader` is the sole writer. Host-side model dirs (e.g. `$HOME/models`, which still serves host tooling) are deliberately **not** mounted into the stack's containers: the stack stays relocatable (the repo dir contains everything it needs) and a download is always visible to consumers. The derived HF cache `.hf` (~150MB) is kept inside the store so offline RAG (`FASTEMBED_CACHE_PATH`) is turnkey on a fresh machine; it is disposable and re-downloadable.
+## SiYuan AI Companion
+
+OpenAI-compatible **RAG proxy** over the SiYuan knowledge base: on each request it retrieves the most relevant note blocks from qdrant (`siyuan_ai_companion` collection, all-MiniLM-L6-v2 embeddings, refreshed every 5 min + at startup via the SiYuan SQL API), reconstructs the notes, injects them into the prompt, and forwards to the LLM. Clients speak standard OpenAI chat-completions to it.
+
+- **Endpoints** (host `:8001`, `Authorization: Bearer <COMPANION_TOKEN>`):
+  - `POST /openai/rag/v1/chat/completions` — RAG-enhanced (note context injected into the user message)
+  - `POST /openai/direct/v1/chat/completions` — plain pass-through to the LLM (same for `/completions`, `/embeddings`, `GET /models`, `/direct/v1/retrieve`, `/direct/v1/transcribe`)
+  - `GET /health`
+- **LLM backend:** `llama-swap` (`http://llama-swap:8080/v1/`) — the same swap layer goose uses; any registered model id works (`qwen3.8-27b-uncensored`, …). Embeddings run on CPU (GPU is reserved by llama-swap).
+- **Local patch:** the image is built from `companion/Dockerfile` (base `firefox2100/siyuan-ai-companion:latest` — the `testing` tag in the upstream docs does not exist on Docker Hub) and fixes three issues in `views/utils.py forward_request()`: (1) the client's stale `Content-Length`/hop-by-hop headers are stripped before forwarding — the RAG handler rewrites the user message, so forwarding the original `Content-Length` made httpx/h11 raise `LocalProtocolError: Too much data for declared Content-Length` (500 on every RAG call); (2) upstream responses are forwarded as raw bytes (`response.content`) so charset re-encoding can never break the `Content-Length`; (3) the non-stream forward timeout is 300 s instead of 30 s (long 27B prefills).
+- **Notes:** upstream qdrant client (1.13.3) warns against this stack's qdrant server (1.19.x) — cosmetic, verified functional; llama-swap model ids are not in the app's known-tokenizer list, so it uses a generic tokenizer (override per-request with the `tokenizerModel` field if needed).

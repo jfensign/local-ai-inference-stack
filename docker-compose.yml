@@ -63,6 +63,12 @@ services:
       - REDDIT_CLIENT_ID=REDACTED
       - REDDIT_CLIENT_SECRET=REDACTED
       - REDIRECT_URI=http://localhost:8721/callback
+      # siyuan lives on ai-net (not on goose's localhost); resolve by service name.
+      - SIYUAN_BASE_URL=http://siyuan:6806
+      - SIYUAN_DEFAULT_NOTEBOOK=My Notebook
+      # API token (conf.json -> api.token; distinct from accessAuthCode which
+      # gates the UI). Checked by kernel CheckAuth via Authorization: Token <token>.
+      - SIYUAN_TOKEN=REDACTED
 
     volumes:
       - ./goose/workspace:/workspace
@@ -125,6 +131,11 @@ services:
       - "9101:9293"
     depends_on:
       - llama-swap
+    # Upstream llama-swap lives on ai-net; without it the scrape fails
+    # (llama_swap_up=0) and no ninfer_* / llamaswap_* series reach prometheus.
+    networks:
+      - default
+      - ai-net
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -159,6 +170,11 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=30d'
       - '--web.enable-lifecycle'
+    # llama-swap + dcgm-exporter live on ai-net; prometheus must join it to resolve
+    # those target names (previously: "lookup llama-swap on 127.0.0.11:53: no such host").
+    networks:
+      - default
+      - ai-net
 
   grafana:
     image: grafana/grafana:latest

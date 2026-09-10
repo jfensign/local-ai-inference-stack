@@ -27,8 +27,8 @@ services:
     # ./models (the repo's model store) — all model downloads MUST go through
     # this container so artifacts land in the store those services bind-read.
     build:
-      context: .
-      dockerfile: Dockerfile.hf-downloader
+      context: hf 
+      dockerfile: Dockerfile
     image: hf-downloader:local
     container_name: hf-downloader
     # Run as the host user (first-user uid 1000 on nearly all distros) so
@@ -50,8 +50,8 @@ services:
 
   goose:
     build:
-      context: .
-      dockerfile: goose.Dockerfile
+      context: goose
+      dockerfile: Dockerfile
     image: llama-stack-goose:local
     container_name: goose
     stdin_open: true

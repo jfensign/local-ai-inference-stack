@@ -23,7 +23,7 @@
 # --- Provider (llama-swap swap layer, OpenAI-compatible) ---
 GOOSE_PROVIDER: openai
 GOOSE_MODEL: qwen3.8-27b-uncensored
-GOOSE_CONTEXT_LIMIT: 180000
+GOOSE_CONTEXT_LIMIT: 160536
 OPENAI_HOST: http://llama-swap:8080
 OPENAI_API_KEY: sk-local
 
@@ -40,6 +40,7 @@ GOOSE_CLI_MIN_PRIORITY: 0.0
 GOOSE_SEARCH_PATHS:
   - /usr/local/bin
   - /usr/bin
+
 
 extensions:
   developer:
@@ -228,11 +229,13 @@ extensions:
     enabled: false
     type: stdio
     name: playwright
-    cmd: npx
+    cmd: /workspace/bin/npx-chromium
     args:
       - -y
       - '@playwright/mcp@latest'
       - --isolated
+      - --browser
+      - chromium
 
   crypto:
     enabled: false

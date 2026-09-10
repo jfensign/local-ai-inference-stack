@@ -2,9 +2,26 @@ port: 8080
 healthCheckTimeout: 300
 globalTTL: 600
 
+
 models:
   qwen3.8-27b-uncensored:
-    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_uncensored.ninfer --model-id qwen3.8-27b-uncensored --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 181072 --kv-capacity auto --kv-dtype int8 --vision"
+    # --max-concurrency 1: serialize on the single GPU so two long contexts can't
+    # double-allocate KV and kill the process (was: "upstream command exited
+    # prematurely" mid-stream). --pending-timeout-ms 600000: queued requests
+    # wait up to 10 min instead of 500ing with "request expired while waiting
+    # for admission" (default timeout < a 2nd long prefill's duration).
+    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_uncensored.ninfer --model-id qwen3.8-27b-uncensored --host 127.0.0.1 --port ${PORT} --draft-tokens 1 --spec mtp --max-context 181072 --kv-capacity auto --kv-dtype int8 --vision --default-max-tokens 32768 --max-concurrency 1 --max-pending-requests 8 --pending-timeout-ms 600000"
 
   qwen3.8-27b:
-    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer --model-id qwen3.8-27b --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 181072 --kv-capacity auto --kv-dtype int8 --vision"
+    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer --model-id qwen3.8-27b --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 181072 --kv-capacity auto --kv-dtype int8 --vision --max-concurrency 1 --max-pending-requests 8 --pending-timeout-ms 600000"
+
+  qwen3.8-27b-imagegen:
+    cmd: >
+      ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer
+      --model-id qwen3.8-27b
+      --host 127.0.0.1 --port ${PORT}
+      --spec mtp --draft-tokens 3 --lm-head-draft
+      --max-context 131072
+      --kv-capacity auto --kv-dtype int8
+      --vision
+

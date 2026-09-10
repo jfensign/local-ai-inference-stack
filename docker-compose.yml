@@ -5,6 +5,22 @@ x-model-volume: &model-volume
   read_only: true
 
 services:
+  siyuan:
+    image: b3log/siyuan
+    container_name: siyuan
+    restart: unless-stopped
+    ports:
+      - "6806:6806"
+    volumes:
+      - ./workspace:/siyuan/workspace
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - SIYUAN_ACCESS_AUTH_CODE=your_actual_password_here
+    command: ["serve", "--workspace=/siyuan/workspace/"]
+    networks:
+      - ai-net 
   hf-downloader:
     # Single sanctioned path for pulling models from the Hugging Face Hub.
     # PREREQUISITE: goose, llama-swap, and ninfer consume artifacts from
@@ -43,9 +59,17 @@ services:
     environment:
       - GOOSE_CLI_SHOW_THINKING=true
       - GOOSE_CONFIG_PATH=/home/goose/.config/goose/config.yaml
+      - REDDIT_USER_AGENT=mcp-reddit/1.0
+      - REDDIT_CLIENT_ID=REDACTED
+      - REDDIT_CLIENT_SECRET=REDACTED
+      - REDIRECT_URI=http://localhost:8721/callback
+
     volumes:
       - ./goose/workspace:/workspace
       - ./goose/config.yaml:/home/goose/.config/goose/config.yaml
+      # Global skills/plugins: goose discovers skills from ~/.agents/skills/
+      # and installed plugins from ~/.agents/plugins/ (host ~ = /home/joseph).
+      - ~/.agents:/home/goose/.agents
       # qdrant_rag extension resolves FastEmbed models from the shared model
       # store (FASTEMBED_CACHE_PATH=/models/.hf/hub in goose/config.yaml).
       - *model-volume
@@ -76,6 +100,8 @@ services:
     volumes:
       - *model-volume
       - ./llama-swap/config.yaml:/etc/llama-swap/config/config.yaml
+    networks:
+      - ai-net
     deploy:
       resources:
         reservations:
@@ -167,3 +193,7 @@ configs:
 volumes:
   prometheus_data:
   grafana_data:
+
+networks:
+  ai-net:
+    driver: bridge

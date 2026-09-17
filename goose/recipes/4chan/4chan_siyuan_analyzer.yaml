@@ -1,0 +1,466 @@
+version: "1.0.0"
+name: "4chan-to-SiYuan Scraper & Analyzer"
+title: "4chan-to-SiYuan Scraper & Analyzer"
+description: >
+  End-to-end pipeline: extract 4chan board data from the official 4cdn API
+  (a.4cdn.org catalog/thread JSON, i.4cdn.org images), perform 1-level deep
+  link research on external references found in posts (titles, meta
+  descriptions, core takeaways), download thread images and run OCR/vision
+  analysis (code snippets, screenshots, diagrams, memes), synthesize a
+  SiYuan-structured Markdown report (headers, block attributes, callouts,
+  bulleted summaries, tables), and publish it to SiYuan Note through the
+  SiYuan kernel REST API (createDocWithMd primary, insertBlockSql fallback)
+  via the siyuan skill Node CLI or direct curl against the local endpoint.
+
+parameters:
+  - key: board
+    input_type: string
+    requirement: required
+    description: "4chan board code to scrape (e.g. 'g', 'tech', 'a', 'prog')."
+  - key: thread_id
+    input_type: string
+    requirement: optional
+    default: ""
+    description: "Optional thread ID for single-thread mode. Leave empty for catalog mode (top threads of the latest day on the board)."
+  - key: siyuan_api_token
+    input_type: string
+    requirement: required
+    description: "SiYuan API token (Settings -> About -> API Token). Passed via env only; never echoed in the report."
+  - key: siyuan_endpoint
+    input_type: string
+    requirement: optional
+    default: "http://siyuan:6806"
+    description: "SiYuan kernel REST endpoint (host:port shown in Settings -> About). Default is the llama-stack compose service name (siyuan:6806, resolvable from the goose container); use http://localhost:6806 for host-side runs."
+  - key: siyuan_notebook
+    input_type: string
+    requirement: optional
+    default: ""
+    description: "Target SiYuan notebook ID or name. Empty => auto-resolve the first user notebook from the kernel."
+  - key: siyuan_folder
+    input_type: string
+    requirement: optional
+    default: "4chan Research"
+    description: "SiYuan hPath folder (relative to the notebook root) where report notes are stored."
+  - key: siyuan_skill_dir
+    input_type: string
+    requirement: optional
+    default: "~/.agents/skills/siyuan"
+    description: "Directory of the siyuan skill (contains scripts/*.js). Overridable for relocated installs; if absent the pipeline falls back to direct kernel REST calls."
+  - key: max_threads
+    input_type: number
+    requirement: optional
+    default: "5"
+    description: "Catalog mode only: number of top threads (by post count, latest day) to process."
+  - key: max_links
+    input_type: number
+    requirement: optional
+    default: "10"
+    description: "Maximum external links to deep-research (1 level deep) per thread."
+  - key: max_images
+    input_type: number
+    requirement: optional
+    default: "12"
+    description: "Maximum thread images to download and OCR/vision-analyze per thread."
+  - key: max_posts
+    input_type: number
+    requirement: optional
+    default: "40"
+    description: "Cap on posts stored per thread in threads.json (OP + highest-signal replies). Bounds Stage 4 synthesis on huge threads; thread stats stay uncapped."
+
+extensions:
+  - type: builtin
+    name: developer
+    description: "CLI/shell, file I/O, and curl-based HTTP access: 4cdn API fetch, external link scraping, image downloads, and direct SiYuan kernel REST calls."
+  - type: builtin
+    name: python
+    description: "Python execution environment for JSON parsing, URL extraction, HTML parsing (BeautifulSoup), OCR glue, and report assembly."
+
+settings:
+  max_turns: 300
+
+retry:
+  max_retries: 2
+  timeout_seconds: 60
+  checks:
+    - type: shell
+      command: "python3 -c \"import json,sys; s=json.load(open('run/pipeline_state.json')); sys.exit(0 if s.get('status') in ('completed','degraded') and s.get('siyuan_published') else 1)\""
+  on_failure: "echo '[retry] cleaning partial run artifacts'; rm -f run/links.json run/media_analysis.json run/report.md run/catalog.json run/thread_*.json 2>/dev/null; rm -rf run/images 2>/dev/null || true"
+
+response:
+  json_schema:
+    type: object
+    properties:
+      status:
+        type: string
+        enum: ["completed", "degraded", "failed"]
+        description: "completed = all stages ok; degraded = published with some skipped links/images/OCR; failed = hard error (4chan or SiYuan unreachable)"
+      board:
+        type: string
+      mode:
+        type: string
+        enum: ["thread", "catalog"]
+      threads_processed:
+        type: number
+      posts_extracted:
+        type: number
+      links_researched:
+        type: number
+      images_analyzed:
+        type: number
+      siyuan_published:
+        type: boolean
+      report_doc_id:
+        type: ["string", "null"]
+        description: "SiYuan doc ID of the published report note"
+      report_path:
+        type: ["string", "null"]
+        description: "SiYuan hPath of the published report note"
+      notes:
+        type: array
+        items:
+          type: string
+        description: "Warnings, fallbacks, or per-stage anomalies"
+    required: ["status", "board", "mode", "siyuan_published"]
+
+activities:
+  - "message: **4chan-to-SiYuan Scraper & Analyzer** — scrape /{{ board }} ({{ max_threads }} top threads in catalog mode), deep-research external links 1 level deep, OCR/vision-analyze thread images, and publish a SiYuan-structured report to your notes."
+  - "Run the full 4chan → SiYuan pipeline on /{{ board }} now"
+  - "Analyze thread {{ thread_id }} on /{{ board }} with deep link research and media analysis"
+  - "Catalog scan /{{ board }}: top {{ max_threads }} threads, deep research + media analysis → SiYuan"
+
+instructions: |
+  You are running the 4chan → SiYuan scraper & analyzer pipeline (CLI
+  blueprint). Execute the stages below in order, autonomously. Do not pause
+  for approval. Every stage that can succeed must be attempted; consult the
+  ERROR MATRIX before declaring failure.
+
+  ============================ ENVIRONMENT CONTRACT ============================
+  - BOARD:            {{ board }}
+  - THREAD_ID:        {{ thread_id }} (empty string => catalog mode)
+  - SIYUAN_ENDPOINT:  {{ siyuan_endpoint }}
+  - SIYUAN_API_TOKEN: <secret — pass via env only, never print it>
+  - SIYUAN_NOTEBOOK:  {{ siyuan_notebook }} (empty => auto-resolve first user notebook)
+  - SIYUAN_FOLDER:    {{ siyuan_folder }}
+  - SIYUAN_SKILL_DIR: {{ siyuan_skill_dir }}
+  - MAX_THREADS:      {{ max_threads }} (catalog mode)
+  - MAX_LINKS:        {{ max_links }} (per thread)
+  - MAX_IMAGES:       {{ max_images }} (per thread)
+  - MAX_POSTS:        {{ max_posts }} (per thread; bounds stored + synthesized posts)
+
+  - Working dir: create ./run/ for all intermediate artifacts:
+    run/threads.json, run/external_links.json, run/links.json,
+    run/media_analysis.json, run/report.md, run/images/<thread_id>/,
+    run/pipeline_state.json.
+
+  SIYUAN LAYER — the siyuan skill (primary):
+    All SiYuan reads/writes go through the siyuan skill's Node CLI scripts in
+    {{ siyuan_skill_dir }}/scripts (kernel REST under the hood; auth header
+    is built from env). Export once before any SiYuan call:
+
+      export SIYUAN_SKILL_DIR="{{ siyuan_skill_dir }}"
+      case "$SIYUAN_SKILL_DIR" in "~/"*) SIYUAN_SKILL_DIR="$HOME/${SIYUAN_SKILL_DIR#\~/}";; esac
+      export SIYUAN_SKILL="$SIYUAN_SKILL_DIR/scripts"
+      export SIYUAN_BASE_URL="{{ siyuan_endpoint }}" \
+             SIYUAN_TOKEN="{{ siyuan_api_token }}"
+
+    Invoke:  node $SIYUAN_SKILL/<command>.js [options]
+    Output:  pretty JSON on stdout ({success, data, ...}); exit 0 = ok,
+             non-zero = error (message on stderr).
+    Path convention: skill document paths are "/<notebook>/<hpath>" — the
+    FIRST path element is the notebook (name or id); the rest is the hpath
+    relative to the notebook root.
+
+    FALLBACK LAYER (only if {{ siyuan_skill_dir }} is missing or node >= 14
+    is unavailable): direct kernel REST via curl/python requests against
+    {{ siyuan_endpoint }}, header 'Authorization: Token <token>':
+      - notebooks:    GET  /api/notebook/notebooks
+      - create doc:   POST /api/filetree/createDocWithMd
+                      body {"path": "/<notebook>/<folder>/<doc>", "markdown": "<md>"}
+      - append block: POST /api/sql/exec
+                      body {"sql": "insertBlockSql('<parentBlockId>', '<htmlOrMd>')"}
+      (The user-facing endpoint name is also referenced as
+       /api/notebook/createDocWithMd — the kernel routes the same operation
+       via /api/filetree/createDocWithMd; use the filetree path.)
+    Note the fallback in run/pipeline_state.json (errors field) and in the
+    report footer.
+
+  ============================ TURN ECONOMY (HARD RULES) ============================
+  This run has a hard turn budget (settings.max_turns). Big catalog days
+  (1000+ posts) overrun a budgeted run if you explore interactively.
+  1. ONE script per stage: write the stage's Python, run it, check its
+     summary. No repeated small shell calls, no re-reading intermediate
+     JSONs, no re-fetching, no exploratory iterations.
+  2. Stdout discipline: <= 40 lines per tool call (counts, paths, statuses).
+     Post text flows script -> report.md; never dump full post bodies.
+  3. Stage budgets (tool calls): S0 <= 6, S1 <= 8, S2 <= 10, S3 <= 8,
+     S4 <= 30, S5+S6 <= 8. Past ~70% of budget with Stage 5 not done =>
+     CONDENSE (per-thread top-5 bullets only) and publish immediately.
+     A shorter published report always beats a perfect unpublished one.
+  4. Reuse fast-path (Stage 1): never re-fetch what a valid earlier stage
+     already produced in this day's run/ directory.
+  5. NO TOOL-LESS TURNS: every response before Stage 6 MUST include at least
+     one tool call. Never end a turn with thinking or status text alone
+     ("Stage 2 done, now Stage 3" with nothing else) — goose reads a
+     tool-less turn as "agent finished" and injects the final_output nudge.
+     Narrate inside thinking; the visible turn must still call the next tool.
+  6. SMALL TOOL CALLS: keep each write/edit payload under ~6000 chars. Big
+     artifacts (report-builder script, per-thread SYNTH data) are written as
+     part files (run/report_part1.py ... ) and joined in one shell call
+     (cat run/report_part*.py > run/build_report.py). Giant single writes get
+     truncated by the provider mid-stream and silently kill the run.
+  7. NUDGE DISCIPLINE: if goose injects "You MUST call the final_output
+     tool NOW" BEFORE Stage 6 is complete, treat it as a checkpoint, not a
+     verdict: immediately CONDENSE (rule 3), finish Stages 4-6, and only
+     then call final_output. Never call it with siyuan_published=false
+     unless SiYuan itself is unreachable after its Stage 0 retries.
+
+  ============================ STAGE 0: BOOTSTRAP ============================
+  0. Reset stale state FIRST: run/ is shared across recipes — a leftover
+     run/pipeline_state.json from ANOTHER recipe (or a prior partial run) makes
+     the retry check pass while this run silently publishes nothing.
+       rm -f run/pipeline_state.json
+       echo '{"status":"running"}' > run/pipeline_state.json
+     (delete ONLY the state file — other run/ artifacts may be reused via the
+      Stage 1 fast-path; never `rm -rf run` here.)
+  1. mkdir -p run
+  2. Python dependencies (skip if already importable):
+       pip install --quiet requests beautifulsoup4 \
+           || pip install --quiet --break-system-packages requests beautifulsoup4
+     Verify: python3 -c "import requests, bs4"
+  3. OCR backend probe: `command -v tesseract`.
+     - Present  → OCR_BACKEND=tesseract (pip install --quiet pytesseract if needed).
+     - Absent   → OCR_BACKEND=vision: rely on the active vision model /
+       image-read tool for media analysis; if the model is not vision-capable,
+       OCR_BACKEND=none and images are logged without OCR (degraded).
+  4. SiYuan skill runtime check:
+       node --version     (needs >= 14)
+       ls {{ siyuan_skill_dir }}/scripts/notebooks.js  (after ~ expansion)
+     Either fails → use FALLBACK LAYER for ALL SiYuan operations; continue.
+  5. SiYuan connectivity + notebook resolution:
+       node $SIYUAN_SKILL/notebooks.js     (or GET /api/notebook/notebooks)
+     Required: exit 0, success=true, notebooks[] list.
+       - Non-zero / success=false → SiYuan not running, {{ siyuan_endpoint }}
+         wrong, or token rejected (message contains "Auth failed" ⇒ token
+         rejected). Wait 30s and retry ONCE; then abort status=failed (write
+         the state file first).
+       - If {{ siyuan_notebook }} is empty: resolve the first user notebook
+         (skip the factory 'default' notebook when others exist) and record
+         it as RESOLVED_NOTEBOOK.
+       - Else match {{ siyuan_notebook }} by id OR name in the list.
+         Not found → if it looks like a plain NAME (no timestamp-id shape),
+         auto-create it:
+           python3 -c "import os,requests; h={'Authorization': f'Token {os.environ[\"SIYUAN_TOKEN\"]}', 'Content-Type': 'application/json'}; print(requests.post(os.environ['SIYUAN_BASE_URL']+'/api/notebook/createNotebook', json={'name': '{{ siyuan_notebook }}'}, headers=h, timeout=10).text)"
+         then re-probe; record auto-creation in the state file.
+         If it looks like a timestamp id (e.g. 20260908150924-rjs4adg) but is
+         missing → print available notebooks (id + name) and abort status=failed.
+  6. DATE=$(date +%F); TS=$(date -u +%FT%TZ) for document naming and footer.
+
+  ============================ STAGE 1: 4CHAN DATA EXTRACTION ============================
+  Fetch raw JSON from the official 4cdn API (always send a User-Agent, e.g.
+  'goose-4chan-scraper/1.0'; 4chan's CDN may 403 bare curl UAs):
+
+  REUSE FAST-PATH (run before any fetch — resumes a partial same-day run in
+  a few turns instead of re-scraping):
+    - THREAD mode: run/thread_<id>.json exists and parses (4chan thread JSON
+      is immutable) AND run/threads.json parses → Stage 1 done. If links.json
+      parses → Stage 2 done. If media_analysis.json parses → Stage 3 done.
+    - CATALOG mode: refetch catalog.json (one small call); Stage 1 done iff
+      threads.json parses, its mtime is < 24h old, and its thread ids == the
+      top {{ max_threads }} ids (by posts desc) of the LAST day-group.
+      links.json / media_analysis.json validity gates Stages 2 / 3 as above.
+    - Old-schema threads.json (any thread with > MAX_POSTS stored posts, i.e.
+      produced before the synthesis cap existed) is NOT a reuse miss: re-run
+      the PARSE step over the existing run/thread_*.json files (local, no
+      network) to regenerate a capped threads.json. If thread_*.json were
+      cleaned up too, refetch as normal.
+    - Run only the missing/invalid stages, in order, reusing valid upstream
+      outputs; record e.g. "reused: S1,S2" in pipeline_state.json notes.
+
+  MODE A — THREAD MODE ({{ thread_id }} non-empty):
+    curl -sS -A "goose-4chan-scraper/1.0" \
+      "https://a.4cdn.org/{{ board }}/thread/{{ thread_id }}.json" \
+      -o run/thread_{{ thread_id }}.json
+    HTTP 404 / empty body → thread missing or already purged: retry ONCE,
+    then status=failed.
+
+  MODE B — CATALOG MODE ({{ thread_id }} empty):
+    curl -sS -A "goose-4chan-scraper/1.0" \
+      "https://a.4cdn.org/{{ board }}/catalog.json" -o run/catalog.json
+    Python: take the LAST (most recent) day-group of catalog.json, sort its
+    threads[] by posts desc, take the top {{ max_threads }} thread ids, and
+    fetch each:
+      "https://a.4cdn.org/{{ board }}/thread/<id>.json" -o run/thread_<id>.json
+    Individual thread fetch failures: continue with the rest (degraded).
+
+  PARSE (one python3 pass over every run/thread_*.json → run/threads.json):
+    Per thread: {thread_id, sub (OP subject), op: {tim, no, name, trip, com_html,
+    com_text, time_iso, file: {no, ext, w, h, size} | null},
+    replies: [{no, tim, time_iso, name, trip, com_html, com_text, urls[], file}]}
+    - com_text: strip tags (BeautifulSoup get_text).
+    - urls: regex https?://[^\s"'<>()]+ over com_html, strip trailing
+      punctuation, plus every post image reference resolved to
+      https://i.4cdn.org/{{ board }}/<file.no>.<file.ext>
+      (CDN fallback host: s.4cdn.org).
+    - External link list → run/external_links.json: dedupe across all posts,
+      EXCLUDE i.4cdn.org / s.4cdn.org / *.4cdn.org / boards.4chan.org /
+      www.4chan.org, tag each url with {source_thread, source_post_no}.
+      Keep at most {{ max_links }} per thread (prefer links quoted by multiple
+      posts, then OP links).
+    - SYNTHESIS CAP: threads.json stores at most {{ max_posts }} posts per
+      thread (always the OP, then highest-signal replies: quoted/quoting,
+      longest substantive, then earliest). post_count / total_replies stay
+      uncapped for stats. Stage 4 reads threads.json ONLY — never the raw
+      thread_*.json, and never dumps post bodies to stdout.
+
+  ============================ STAGE 2: DEEP LINK RESEARCH (1 LEVEL) ============================
+  For each selected external URL (total cap: {{ max_links }} unique links in
+  thread mode; in catalog mode take the top-{{ max_links }} most-frequented
+  links across all threads):
+    1. Fetch: requests.get(url, timeout=15, UA header, allow_redirects=True,
+       stream cap ~1 MB of body).
+    2. Classify by content-type:
+       - HTML → BeautifulSoup: extract <title>, <meta name="description"> or
+         <meta property="og:description">, and visible text (first ~400 chars).
+       - PDF (application/pdf or .pdf URL) → metadata only: title from URL
+         basename, content-type, size; skip full-text extraction.
+       - Other/binary → record content-type + size only.
+    3. On failure (404/timeout/403/block) → status "unreachable" +
+       http_status; continue with remaining links.
+    4. For each reachable page, derive 2–3 core takeaways (extractive:
+       headline + meta description + key sentences; no speculation).
+  → run/links.json: [{url, title, meta_description, takeaways[], status,
+    http_status, content_type, source_thread, source_post_no}]
+
+  ============================ STAGE 3: MEDIA / PHOTO ANALYSIS ============================
+  Per thread, select up to {{ max_images }} images (OP image first, then
+  earliest replies with files):
+    curl -sS -A "goose-4chan-scraper/1.0" \
+      -o run/images/<thread_id>/<file.no><file.ext> \
+      "https://i.4cdn.org/{{ board }}/<file.no><file.ext>"
+    (on 404/410 retry once against s.4cdn.org; then skip the image.)
+  Analyze each downloaded file:
+    1. OCR (if OCR_BACKEND=tesseract):
+         tesseract <file> stdout 2>/dev/null  (try --psm 6 for dense screenshots)
+       Keep ocr_text only when non-trivial (> 3 words).
+    2. Vision (if the active model is vision-capable / an image-read tool is
+       available): inspect the image and classify artifact_type ∈
+       {code-screenshot, terminal, diagram, chart, screenshot-ui, meme,
+       drawing, other} and write a 1–3 sentence visual_summary (code
+       snippets: quote the key lines; memes: identify the template and
+       context).
+    3. If neither OCR nor vision is available: artifact_type="unknown",
+       visual_summary from OCR-only or "no analysis backend".
+  → run/media_analysis.json: [{thread_id, post_no, file, ocr_text,
+    artifact_type, visual_summary}]
+
+  ============================ STAGE 4: SYNTHESIS (run/report.md) ============================
+  Input is the CAPPED run/threads.json plus run/links.json and
+  run/media_analysis.json — do not re-read raw thread_*.json or re-dump
+  post bodies to stdout. If any thread in threads.json stores more than
+  MAX_POSTS posts (pre-cap schema), re-apply the cap inside the Stage 4
+  script. One script writes run/report.md; read only its summary output,
+  then publish.
+  Build ONE Markdown document structured for SiYuan Note blocks. Validity
+  contract for the SiYuan markdown import: standard headers, blockquotes,
+  bullet lists, tables, fenced code blocks, and #tags — no raw HTML except
+  <details>/<summary>. SiYuan block attributes are attached after publish via
+  the skill (block-attrs.js --set key=value) when noted below.
+
+  Layout (top to bottom):
+    1. Tag line (first line):  #4chan #{{ board }} #scraper #analyzer
+       (add #deep-research when links were researched, #media when images
+       were analyzed).
+    2. Header block — SiYuan quote/callout:
+         > **Thread:** <OP subject or "Catalog scan — top {{ max_threads }} threads, <DATE>">
+         > **Board:** /{{ board }}
+         > **Thread URL:** https://boards.4chan.org/{{ board }}/thread/<id>
+         > **Posted:** <ISO timestamp of OP>
+         > **Stats:** N replies · M images · K links researched
+       (one header block per processed thread in catalog mode).
+    3. ## Detailed Summary
+       - Key discussion points (bullets, concrete, no filler).
+       - Arguments: for / against / open questions.
+       - Consensus: explicit, or "no consensus".
+       - Technical insights (code, tooling, benchmarks if present).
+    4. ## Scraped Posts & Comments
+       - OP as a blockquote (name/trip, timestamp, full comment text).
+       - Top 10 replies as a table: No | Author | Time | Comment (first
+         140 chars, external links preserved as markdown links).
+       - Remaining replies as a compact <details> list (post no + first
+         80 chars) to keep the block tree shallow.
+    5. ## Deep Research Insights
+       Per researched link:
+         ### <title or URL>
+         - URL / meta description / status
+         - Takeaways as bullets.
+       Unreachable links listed once in a "Failed fetches" bullet list.
+    6. ## Media Analysis
+       Per image: filename, artifact type, visual summary; OCR text (when
+       non-trivial) in a fenced code block.
+    7. Footer: generated <TS> by 4chan-to-SiYuan Scraper & Analyzer;
+       pipeline notes (fallback layer used, OCR backend, degraded stages).
+
+  ============================ STAGE 5: SIYUAN PUBLISH ============================
+  DOC_NAME:
+    - thread mode:  4chan-{{ board }}-thread-<thread_id>-<DATE>
+    - catalog mode: 4chan-{{ board }}-catalog-<DATE>
+  TARGET_PATH: "/<RESOLVED_NOTEBOOK>/<{{ siyuan_folder }}>" (normalize:
+  strip leading/trailing slashes from {{ siyuan_folder }}; auto-creation of
+  intermediate folders is handled by the kernel).
+
+  PUBLISH — primary (siyuan skill, wraps /api/filetree/createDocWithMd):
+    node $SIYUAN_SKILL/create.js "<DOC_NAME>" \
+      --path "/<RESOLVED_NOTEBOOK>/<{{ siyuan_folder }}>" \
+      --file run/report.md --force
+    (single command; report.md is passed BY PATH — never cat/read it)
+
+  PUBLISH — fallback (direct kernel REST, when the skill layer is down):
+    python3: payload = {"path": "/<RESOLVED_NOTEBOOK>/<{{ siyuan_folder }}>/<DOC_NAME>",
+                        "markdown": <contents of run/report.md>}
+    curl -s -X POST "{{ siyuan_endpoint }}/api/filetree/createDocWithMd" \
+      -H "Authorization: Token $SIYUAN_TOKEN" \
+      -H "Content-Type: application/json" --data @run/payload.json
+    (User-specified alias /api/notebook/createDocWithMd maps to the same
+    kernel operation; prefer the filetree path.)
+
+  APPEND MODE (re-run on the same day): if a doc with DOC_NAME already
+  exists (skill exists.js --title, or createDocWithMd returns an
+  already-exists error), do NOT duplicate:
+    - skill: node $SIYUAN_SKILL/block-insert.js "<footer + delta summary>" --parent-id <docId>, or
+    - kernel: POST /api/sql/exec with
+      insertBlockSql('<lastBlockIdOfDoc>', '<deltaHtml>')
+    and mark siyuan_published=true (appended).
+
+  VERIFY: skill success=true / kernel JSON code == 0. Capture doc_id and
+  hPath (skill convert.js --id <docId> for the path) → state + response.
+
+  Optional block attributes on the published doc (when the skill layer is
+  active): node $SIYUAN_SKILL/block-attrs.js <headerBlockId> --set pinned=true
+  on the header callout; skip silently if block ids are unavailable.
+
+  ============================ STAGE 6: STATE + FINAL OUTPUT ============================
+  Write run/pipeline_state.json:
+    {status, mode, board, threads_processed, posts_extracted, links_researched,
+     images_analyzed, siyuan_published, report_doc_id, report_path, errors[]}
+  status:
+    - completed: all stages ok, doc created.
+    - degraded: published, but links/images/OCR partially skipped.
+    - failed: 4chan source unreachable, or SiYuan unreachable/token rejected.
+  Then emit the final structured JSON response matching the schema exactly.
+
+  ============================ ERROR MATRIX ============================
+  | Condition                              | Action |
+  |----------------------------------------|----------------------------------------------|
+  | a.4cdn.org 403 (UA/CDN)                | Retry once with different UA; else failed   |
+  | Thread 404 / catalog empty             | failed (thread not found / board inactive)  |
+  | One link fetch fails                   | status=unreachable, continue                |
+  | One image 404 on i.4cdn                | Retry on s.4cdn, else skip image            |
+  | tesseract missing                      | OCR_BACKEND=vision or none (degraded)       |
+  | siyuan skill / node missing            | FALLBACK LAYER for all SiYuan ops           |
+  | SiYuan endpoint down / token rejected  | 30s wait + 1 retry, else failed             |
+  | Notebook missing (name shape)          | Auto-create, re-probe, continue             |
+  | Notebook missing (timestamp-id shape)  | failed + list available notebooks           |
+  | createDocWithMd: doc already exists    | Append via insertBlockSql / block-insert    |
+  | SiYuan unreachable after retries       | status=failed (report.md preserved in run/) |
+
+prompt: "Run the 4chan→SiYuan pipeline: scrape /{{ board }} (thread {{ thread_id }} if set, otherwise the top {{ max_threads }} threads of the latest catalog day), deep-research external links 1 level deep (max {{ max_links }}/thread), download up to {{ max_images }} thread images per thread for OCR/vision analysis, synthesize the SiYuan-structured report, and publish it to notebook '{{ siyuan_notebook }}' under '{{ siyuan_folder }}' via the SiYuan kernel API at {{ siyuan_endpoint }}."

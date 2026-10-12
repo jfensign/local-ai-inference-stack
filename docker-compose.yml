@@ -1,7 +1,7 @@
 x-model-volume: &model-volume
   type: bind
   source: ./models
-  target: /models
+  target: /comfyui/models
   read_only: true
 
 services:
@@ -45,7 +45,7 @@ services:
       - HF_XET_HIGH_PERFORMANCE=1
       - HF_TOKEN=${HF_TOKEN:-}
     # Usage (CLI is `hf` in huggingface_hub 1.x; `huggingface-cli` is a dead stub):
-    #   docker compose run --rm hf-downloader download <owner/repo> \
+    #    docker compose run --rm hf-downloader download <owner/repo> \
     #       --local-dir /models/<name> [--include "*.gguf"]
 
   goose:
@@ -59,6 +59,9 @@ services:
     environment:
       - GOOSE_CLI_SHOW_THINKING=true
       - GOOSE_CONFIG_PATH=/home/goose/.config/goose/config.yaml
+      # Image PATH is /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      # (deduped); prepend /opt/craft/bin so shell-tool commands find the craft CLIs.
+      - PATH=/opt/craft/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       - REDDIT_USER_AGENT=mcp-reddit/1.0
       - REDDIT_CLIENT_ID=REDACTED
       - REDDIT_CLIENT_SECRET=REDACTED
@@ -73,12 +76,25 @@ services:
     volumes:
       - ./goose/workspace:/workspace
       - ./goose/config.yaml:/home/goose/.config/goose/config.yaml
+      - ./goose/recipes:/home/goose/.config/goose/recipes
       # Global skills/plugins: goose discovers skills from ~/.agents/skills/
       # and installed plugins from ~/.agents/plugins/ (host ~ = /home/joseph).
       - ~/.agents:/home/goose/.agents
+      # Craft CLIs, staged on the host (see goose/craft-bin/; copies, not symlinks —
+      # bind mounts do not resolve link targets). Host: /usr/bin/*-craft-cli.
+      - ./goose/craft-bin:/opt/craft/bin:ro
+      # Persist goose session data (sessions.db) across container rebuilds.
+      - ./goose/local-share:/home/goose/.local/share
+      # DISABLED: shadowed the image's /usr/local/bin (goose, uv, uvx) when active,
+      # breaking the entrypoint on recreate. Re-enable only if you install goose/uv
+      # into the host's /usr/local/bin first.
+      # - /usr/local/bin:/usr/local/bin
       # qdrant_rag extension resolves FastEmbed models from the shared model
       # store (FASTEMBED_CACHE_PATH=/models/.hf/hub in goose/config.yaml).
-      - *model-volume
+      - type: bind
+        source: ./models
+        target: /models
+        read_only: true
     working_dir: /workspace
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -96,6 +112,26 @@ services:
     command: serve --host 0.0.0.0 --port 3284
     restart: unless-stopped
 
+  pi-agent-harness:
+    build:
+      context: ./pi-agent-harness
+      dockerfile: Dockerfile
+    container_name: pi-agent-harness
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./:/workspace
+    depends_on:
+      - llama-swap
+    ports:
+      - "8002:8000"
+    environment:
+      - OPENAI_BASE_URL=http://llama-swap:8080/v1
+      - OPENAI_API_KEY=dummy-key
+    networks:
+      - ai-net
+
   llama-swap:
     build:
       context: .
@@ -109,7 +145,10 @@ services:
       - CUDA_VISIBLE_DEVICES=0
       - CUDA_DEVICE_MAX_CONNECTIONS=1
     volumes:
-      - *model-volume
+      - type: bind
+        source: ./models
+        target: /models
+        read_only: true
       - ./llama-swap/config.yaml:/etc/llama-swap/config/config.yaml
     networks:
       - ai-net
@@ -136,6 +175,50 @@ services:
     networks:
       - default
       - ai-net
+
+  
+
+  comfyui:
+    image: yanwk/comfyui-boot:cu130-slim-v2
+    container_name: comfyui
+    restart: unless-stopped
+    ports:
+      - "8188:8188"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    environment:
+      - CLI_ARGS=--listen 0.0.0.0 --port 8188
+    volumes:
+      - .comfyui/models/extra_model_paths.yaml:/root/ComfyUI/extra_model_paths.yaml:ro
+      # Cache & config persistence
+      - ./comfyui/storage-cache/dot-cache:/root/.cache
+      - ./comfyui/storage-cache/dot-config:/root/.config
+      # Custom nodes & dependencies
+      - ./comfyui/storage-nodes/dot-local:/root/.local
+      - ./comfyui/storage-nodes/custom_nodes:/root/ComfyUI/custom_nodes
+      # Models (Explicit bind mount for v2)
+      - type: bind
+        source: ./models
+        target: /root/ComfyUI/models
+        read_only: true
+      - ./comfyui/storage-models/hf-hub:/root/.cache/huggingface/hub
+      - ./comfyui/storage-models/torch-hub:/root/.cache/torch/hub
+      # User data
+      - ./comfyui/storage-user/input:/root/ComfyUI/input
+      - ./comfyui/storage-user/output:/root/ComfyUI/output
+      - ./comfyui/storage-user/user-profile:/root/ComfyUI/user
+      - ./comfyui/storage-user/user-scripts:/root/user-scripts
+    networks:
+      - default
+      - ai-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
 
   qdrant:
     image: qdrant/qdrant:latest

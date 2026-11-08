@@ -14,6 +14,13 @@
 #   3. Non-stream forward timeout 30s -> 300s: llama-swap + ninfer-serve
 #      prefill for long RAG prompts on a 27B model can exceed 30s.
 #
+# Patch: model/rag_driver.py add_blocks()
+#   4. Batches the Qdrant upsert (1000 points per call). On a first boot,
+#      update_index() pushes the whole note corpus in one upsert; with a
+#      large corpus the JSON payload exceeds Qdrant's 32 MiB upload limit
+#      (HTTP 400) -> LifespanFailureError -> restart loop. The rest of the
+#      upstream file is unchanged.
+#
 # NOTE: the image ships the app in BOTH site-packages (the runtime import
 # path, per container logs) and /app/siyuan-ai-companion/src (source tree).
 # Both copies are overwritten so a `pip install -e /app/...` can't resurrect
@@ -22,3 +29,5 @@ FROM firefox2100/siyuan-ai-companion:latest
 
 COPY utils.py /usr/local/lib/python3.10/site-packages/siyuan_ai_companion/views/utils.py
 COPY utils.py /app/siyuan-ai-companion/src/siyuan_ai_companion/views/utils.py
+COPY rag_driver.py /usr/local/lib/python3.10/site-packages/siyuan_ai_companion/model/rag_driver.py
+COPY rag_driver.py /app/siyuan-ai-companion/src/siyuan_ai_companion/model/rag_driver.py

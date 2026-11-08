@@ -23,11 +23,11 @@ command -v docker >/dev/null 2>&1 || fail "docker not found"
 docker compose version >/dev/null 2>&1 || fail "docker compose plugin not found"
 
 if docker info --format '{{.Driver}}' >/dev/null 2>&1; then
-  if [ -d /dev/nvidia0 ] || [ -d /dev/nvidia ]; then
+  if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
     docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi >/dev/null 2>&1 \
       || warn "GPU visible but nvidia-container-toolkit may not be configured — GPU services will fail to start"
   else
-    warn "No NVIDIA device found — llama-swap/comfyui/dcgm-exporter need a GPU"
+    warn "No NVIDIA GPU detected (nvidia-smi) — llama-swap/comfyui/dcgm-exporter need a GPU"
   fi
 else
   warn "docker daemon not reachable — start it and re-run"

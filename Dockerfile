@@ -1,4 +1,6 @@
-# Step 1: Reference local ninfer build stage
+# Step 1: Reference local ninfer build stage.
+# PREREQ: a local `ninfer:local` image that ships the ninfer runtime (ninfer-serve)
+# under /usr/local. Build/obtain it from your ninfer clone before `docker compose up`.
 FROM ninfer:local AS ninfer-src
 
 # Step 2: Build unified runtime

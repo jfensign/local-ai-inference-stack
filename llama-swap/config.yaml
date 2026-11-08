@@ -1,3 +1,10 @@
+# llama-swap model registry.
+#
+# The entries below are working examples for NInfer (.ninfer) checkpoints pulled
+# into ./models via hf-downloader. Swap in your own models: one block per model,
+# `cmd` = the server command that binds 127.0.0.1:${PORT} inside the llama-swap
+# container. llama-swap multiplexes a single OpenAI-compatible endpoint (port
+# 8080) over whichever entries have a live process, launching them on demand.
 port: 8080
 healthCheckTimeout: 300
 globalTTL: 600
@@ -13,7 +20,7 @@ models:
     cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_uncensored.ninfer --model-id qwen3.8-27b-uncensored --host 127.0.0.1 --port ${PORT} --draft-tokens 1 --spec mtp --max-context 181072 --kv-capacity auto --kv-dtype int8 --vision --default-max-tokens 32768 --max-concurrency 1 --max-pending-requests 8 --pending-timeout-ms 600000"
 
   qwen3.8-27b:
-    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer --model-id qwen3.8-27b --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 181072 --kv-capacity auto --kv-dtype int8 --vision --max-concurrency 1 --max-pending-requests 8 --pending-timeout-ms 600000"
+    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer --model-id qwen3.8-27b --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 120000 --kv-capacity auto --kv-dtype int8 --vision --max-concurrency 1 --max-pending-requests 8 --pending-timeout-ms 600000"
 
   qwen3.8-27b-imagegen:
     cmd: >

@@ -1,0 +1,15 @@
+# extra_model_paths.yaml
+comfyui:
+  base_path: /root/ComfyUI/models
+  checkpoints: checkpoints
+  clip: clip 
+  clip_vision: clip_vision
+  configs: configs
+  controlnet: controlnet
+  diffusion_models: diffusion_models
+  unet: unet 
+  embeddings: embeddings
+  loras: loras
+  upscale_models: upscale_models
+  vae: vae
+  text_encoders: text_encoders

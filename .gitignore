@@ -1,23 +1,45 @@
-# Ignore model weights
+# Models & large binaries
 models/
 *.gguf
 
-# Ignore local environment or state overrides
+# Env
 .env
 .DS_Store
 
-# RAG
-qdrant_data
-llama-swap/.playwright-mcp
-llama-swap/config.yaml.bak
+# Runtime data (created by setup.sh / docker compose; never commit)
+qdrant_data/
+workspace/
+comfyui/storage-cache/
+comfyui/storage-user/
+comfyui/storage-nodes/
+comfyui/storage-models/
+.comfyui/
 
-# ninfer: pinned local clone (own git repo; see README "NInfer Service"), not vendored here
+# Agent scratch / local state
+llama-swap/.playwright-mcp/
+llama-swap/config.yaml.bak
+output.md
+goose/workspace/
+goose/local-share/
+goose/recipes/youtube-transcripts/
+
+# Craft CLIs are host-installed binaries, staged into goose/craft-bin/
+# by setup.sh — never commit them.
+goose/craft-bin/*
+!goose/craft-bin/.gitkeep
+
+# pi-agent-harness: only the Dockerfile is vendored; the rest
+# (node install, agent workspace) is host-local runtime state.
+pi-agent-harness/*
+!pi-agent-harness/Dockerfile
+
+# Personal / foreign projects kept alongside this repo
+crossref/
+siyuan-skill/
+.pi/
+
+# Local ninfer build outputs
 ninfer/
 
-# Runtime artifacts (goose scratch workspace, failed-run output, qdrant snapshots)
-goose/workspace/
-output.md
+# Backups
 backups-*/
-
-# goose container session data (runtime state, migrated pre-recreate)
-/goose/local-share/

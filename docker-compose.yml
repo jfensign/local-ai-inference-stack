@@ -1,8 +1,4 @@
-x-model-volume: &model-volume
-  type: bind
-  source: ./models
-  target: /comfyui/models
-  read_only: true
+
 
 services:
   siyuan:
@@ -14,10 +10,11 @@ services:
     volumes:
       - ./workspace:/siyuan/workspace
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=America/New_York
-      - SIYUAN_ACCESS_AUTH_CODE=your_actual_password_here
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-UTC}
+      # UI gate code (Settings -> About -> Access Auth Code); set in .env.
+      - SIYUAN_ACCESS_AUTH_CODE=${SIYUAN_ACCESS_AUTH_CODE:-}
     command: ["serve", "--workspace=/siyuan/workspace/"]
     networks:
       - ai-net 
@@ -62,26 +59,27 @@ services:
       # Image PATH is /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
       # (deduped); prepend /opt/craft/bin so shell-tool commands find the craft CLIs.
       - PATH=/opt/craft/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-      - REDDIT_USER_AGENT=mcp-reddit/1.0
-      - REDDIT_CLIENT_ID=REDACTED
-      - REDDIT_CLIENT_SECRET=REDACTED
+      # Reddit MCP credentials (from .env; leave empty to keep the extension disabled).
+      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT:-mcp-reddit/1.0}
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID:-}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET:-}
       - REDIRECT_URI=http://localhost:8721/callback
       # siyuan lives on ai-net (not on goose's localhost); resolve by service name.
       - SIYUAN_BASE_URL=http://siyuan:6806
       - SIYUAN_DEFAULT_NOTEBOOK=My Notebook
       # API token (conf.json -> api.token; distinct from accessAuthCode which
       # gates the UI). Checked by kernel CheckAuth via Authorization: Token <token>.
-      - SIYUAN_TOKEN=REDACTED
+      - SIYUAN_TOKEN=${SIYUAN_TOKEN:-}
 
     volumes:
       - ./goose/workspace:/workspace
       - ./goose/config.yaml:/home/goose/.config/goose/config.yaml
       - ./goose/recipes:/home/goose/.config/goose/recipes
       # Global skills/plugins: goose discovers skills from ~/.agents/skills/
-      # and installed plugins from ~/.agents/plugins/ (host ~ = /home/joseph).
+      # and installed plugins from ~/.agents/plugins/ (host home directory).
       - ~/.agents:/home/goose/.agents
-      # Craft CLIs, staged on the host (see goose/craft-bin/; copies, not symlinks —
-      # bind mounts do not resolve link targets). Host: /usr/bin/*-craft-cli.
+      # Craft CLIs, staged on the host by setup.sh into goose/craft-bin/ (copies,
+      # not symlinks — bind mounts do not resolve link targets).
       - ./goose/craft-bin:/opt/craft/bin:ro
       # Persist goose session data (sessions.db) across container rebuilds.
       - ./goose/local-share:/home/goose/.local/share
@@ -112,6 +110,14 @@ services:
     command: serve --host 0.0.0.0 --port 3284
     restart: unless-stopped
 
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, utility, compute]
+
   pi-agent-harness:
     build:
       context: ./pi-agent-harness
@@ -121,7 +127,8 @@ services:
     tty: true
     stdin_open: true
     volumes:
-      - ./:/workspace
+      - ./pi-agent-harness/workspace:/workspace
+      - ./pi-agent-harness/.pi:/root/.pi
     depends_on:
       - llama-swap
     ports:
@@ -190,7 +197,7 @@ services:
     environment:
       - CLI_ARGS=--listen 0.0.0.0 --port 8188
     volumes:
-      - .comfyui/models/extra_model_paths.yaml:/root/ComfyUI/extra_model_paths.yaml:ro
+      - ./comfyui/extra_model_paths.yaml:/root/ComfyUI/extra_model_paths.yaml:ro
       # Cache & config persistence
       - ./comfyui/storage-cache/dot-cache:/root/.cache
       - ./comfyui/storage-cache/dot-config:/root/.config
@@ -253,18 +260,18 @@ services:
     restart: always
     environment:
       - SIYUAN_URL=http://siyuan:6806
-      # SiYuan api token (workspace conf.json -> api.token); same token goose uses.
-      - SIYUAN_TOKEN=REDACTED
+      # SiYuan api token (workspace conf.json -> api.token); same token goose uses (from .env).
+      - SIYUAN_TOKEN=${SIYUAN_TOKEN:-}
       - QDRANT_LOCATION=http://qdrant:6333
       - QDRANT_COLLECTION_NAME=siyuan_ai_companion
       # LLM backend: local llama-swap swap layer (OpenAI-compatible), not the
-      # public OpenAI API — 5090 protocol (GPU-first, local inference).
+      # public OpenAI API — the whole point of a local inference stack.
       - OPENAI_URL=http://llama-swap:8080/v1/
       # pydantic binding is openai_token -> OPENAI_TOKEN (not OPENAI_API_KEY).
       # llama-swap accepts any key; sk-local matches the goose convention.
       - OPENAI_TOKEN=sk-local
-      # Auth token clients must present to call the companion's own API.
-      - COMPANION_TOKEN=REDACTED
+      # Auth token clients must present to call the companion's own API (from .env).
+      - COMPANION_TOKEN=${COMPANION_TOKEN:-}
       # Gated embedding models: reuse the stack-wide HF token (see hf-downloader).
       - HUGGINGFACE_HUB_TOKEN=${HF_TOKEN:-}
       # GPU is fully reserved by llama-swap; embeddings run on CPU.
@@ -275,7 +282,7 @@ services:
       - qdrant
       - llama-swap
     ports:
-      # Host 8000 is taken by mcpo-server (foreign project); container side stays 8000.
+      # Host port 8001, container 8000 (change the host side if 8001 is taken).
       - "8001:8000"
     # siyuan + llama-swap live on ai-net; qdrant on the project default network.
     # Companion consumes all three, so it must join both (same pattern as goose).

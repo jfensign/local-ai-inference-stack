@@ -1,199 +1,137 @@
-# Local LLM Inference Stack via Docker & Llama-Swap
+# local-ai-inference-stack
 
-A production-optimized local AI inference architecture running containerized backends on Linux with hardware acceleration. `llama-swap` acts as the unified inference entrypoint: it routes OpenAI-compatible traffic to `ninfer-serve` subprocesses that it spawns and hot-swaps on demand over `.ninfer` model artifacts.
+A Docker Compose stack for running a fully local AI inference environment on a
+single-GPU machine: model serving behind one OpenAI-compatible endpoint
+(**llama-swap**), agent tooling (**goose**, pi-agent-harness), a knowledge base
+with RAG (**SiYuan** + **Qdrant** + **siyuan-ai-companion**), plus optional
+**ComfyUI** and a Prometheus/Grafana telemetry stack.
 
-## Overview
+The repo is intended as a **generic foundation**: clone it, run `./setup.sh`,
+fill in `.env`, point the model registry at the models you pull, and start.
+Machine-specific values (models, tokens, ports) all live in config files you
+own — none are baked into the stack.
 
-- **Routing & Model Management:** `llama-swap` (Dockerized) — OpenAI-compatible proxy, model hot-swap with TTL, health checks
-- **Inference Engine:** `ninfer-serve` ([ninfer](https://github.com/Neroued/ninfer)) — from-scratch C++/CUDA single-GPU engine, MTP speculative decoding, INT8 paged KV cache, 131k context, vision; runs as a **subprocess managed by llama-swap** (no standalone service)
-- **Agent Frontend:** [goose](https://github.com/block/goose) — `goose serve` on `:3284`, OpenAI provider pointed at llama-swap
-- **Hardware Profile:** NVIDIA RTX 5090 (32GB VRAM) / Ubuntu Host / CUDA 13.x
-- **API Standard:** OpenAI-compatible API (`llama-swap:8088`) serving local integrations (goose, any OpenAI client)
+## Architecture
 
-## Hardware & Inference Optimizations
+```
+                        ┌────────────────────────────────────────┐
+ OpenAI clients ──────► │ llama-swap  :8080                      │
+ (goose, companion,    │  OpenAI-compatible proxy that launches  │
+  pi-harness, curl)    │  & multiplexes per-model server procs   │
+                        │  (ninfer-serve examples below)         │
+                        └──────────────┬─────────────────────────┘
+                                       │ spawns
+                        ┌──────────────▼──────────┐
+                        │ ninfer-serve (per model)│  ./models (read-only)
+                        └─────────────────────────┘
 
-Applied per model in `llama-swap/config.yaml` (each entry spawns its own `ninfer-serve` subprocess):
+ goose :3284 (agent server) ──► llama-swap (LLM backend)
+ goose ──► qdrant :6333 (RAG, FastEmbed offline cache)
+ goose ──► siyuan :6806 (notes; api token from .env)
 
-* **MTP Speculative Decoding:** `--spec mtp --draft-tokens 3 --lm-head-draft` — the model's native multi-token-prediction head drafts 3 tokens per step, verified in a single pass
-* **8-Bit KV Cache Precision:** `--kv-dtype int8 --kv-capacity auto` — halves KV memory vs fp16, preserving long-context fidelity
-* **131k Context Window:** `--max-context 131072`
-* **Vision:** `--vision` flag enables the multimodal encoder
-* **100% GPU:** single-GPU engine on the RTX 5090; `CUDA_DEVICE_MAX_CONNECTIONS=1` set in compose
+ siyuan-ai-companion :8001 (host) ──► siyuan :6806, qdrant, llama-swap
+ pi-agent-harness :8002 ──► llama-swap (OPENAI_BASE_URL)
 
-## Services Architecture
+ comfyui :8188 (optional)                    ./models (read-only)
+ telemetry: prometheus :9090, grafana :3033, dcgm-exporter :9400
+```
 
-Orchestrated via `docker-compose.yml`; all model consumers bind the project model store `./models` read-only at `/models`:
+## Services
 
-| Service | Purpose | Ports |
-| :--- | :--- | :--- |
-| **llama-swap** | Unified inference entrypoint: OpenAI-compatible proxy over `ninfer-serve` subprocesses, model hot-swap, per-model lifecycle. | `8088` |
-| **goose** | Block's agent CLI in long-running server mode (`goose serve`); OpenAI provider → llama-swap; MCP extensions (developer, todo, skills, goosedocs, qdrant_rag, playwright, reddit). | `3284` |
-| **siyuan** | SiYuan knowledge base (note workspace persisted at `./workspace`); API token in `workspace/conf/conf.json -> api.token`. | `6806` |
-| **siyuan-ai-companion** | RAG proxy over SiYuan notes: embeds note blocks into qdrant (`siyuan_ai_companion` collection), retrieves + injects context per request, forwards to llama-swap. Local patched image (`companion/` Dockerfile) fixes a Content-Length forwarding bug + forward timeout. | `8001` (container `8000`) |
-| **qdrant** | High-performance vector database for RAG (compliance collections + agent memory + `siyuan_ai_companion`). | `6333` (REST), `6334` (gRPC) |
-| **hf-downloader** | Single sanctioned Hugging Face model pull path (see below). Ephemeral — `docker compose run --rm`. | — |
-| **llama-swap-exporter** | Scrapes llama-swap (`/metrics` re-exposes active model's `ninfer_*` series) and host; pushes to Prometheus. | `9101` |
-| **prometheus** | Time-series DB for system/application metrics. | `9090` |
-| **grafana** | Telemetry dashboards (auto-provisioned from `grafana/dashboards/`). | `3033` |
-| **dcgm-exporter** | NVIDIA DCGM exporter for deep GPU telemetry (VRAM, thermals, clocks, XID). | `9400` |
+| Service | Port(s) | Purpose |
+| --- | --- | --- |
+| **llama-swap** | 8080 | Swap layer: one OpenAI endpoint over N model server processes, launched on demand from `llama-swap/config.yaml`. |
+| **goose** | 3284 | Agent server (`serve --host 0.0.0.0`). LLM backend is llama-swap, not a public API. MCP extensions configured in `goose/config.yaml`. |
+| **pi-agent-harness** | 8002 | Headless pi coding-agent container; also uses llama-swap as its OpenAI backend. |
+| **hf-downloader** | — | Batch `hf` CLI for pulling model files into `./models` (writes as your host uid). |
+| **siyuan** | 6806 | Notes/knowledge base. Port is fixed by the b3log image (override requires customizing the image). |
+| **qdrant** | 6333, 6334 | Vector store: goose RAG collections + companion index. |
+| **siyuan-ai-companion** | 8001 (host) → 8000 (container) | RAG proxy over SiYuan notes into Qdrant, answering via llama-swap. |
+| **comfyui** *(optional)* | 8188 | Image generation; model dirs shared from `./models`. |
+| **llama-swap-exporter** | — | Scrape-target exporter for llama-swap. |
+| **prometheus / grafana / dcgm-exporter** *(optional)* | 9090 / 3033 / 9400 | Telemetry: llama-swap, qdrant, and GPU metrics. Grafana dashboards in `grafana/dashboards/`. |
 
-### Models
+## Prerequisites
 
-Two `qwen3.8-27b` variants registered in `llama-swap/config.yaml`, served from the project store `./models/NInfer/`:
+- NVIDIA GPU + driver. Default model entries assume a **single high-VRAM GPU
+  (≥ 24 GB)**; tune `--max-context` / KV settings and model selection to
+  whatever you have.
+- Docker Engine + Compose plugin + [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+- A local **`ninfer:local`** Docker image shipping the ninfer runtime
+  (`ninfer-serve`) under `/usr/local` — the root `Dockerfile` copies its
+  `/usr/local` into the llama-swap image. Build it from your ninfer clone
+  before the first `docker compose up` (the clone is **not** vendored here).
+- (Optional) Hugging Face token for gated model repos.
+- (Optional) craft CLI binaries on the host (`*-craft-cli` under
+  `/usr/bin` or `CRAFT_BIN_SRC`) — staged into `goose/craft-bin/` by
+  `setup.sh` for goose's shell tool.
 
-| Model id | Artifact |
-| :--- | :--- |
-| `qwen3.8-27b` | `qwen3_8_27b_nvfp4.ninfer` (~21GB) |
-| `qwen3.8-27b-uncensored` | `qwen3_8_27b_uncensored.ninfer` (~18GB) |
-
-`/v1/models`, `/running`, `/health` on `:8088` inspect the swap layer.
-
-## Getting Started
-
-### 1. Downloading models
-
-All Hugging Face pulls go through the `hf-downloader` container (convention and details in [Model Downloading](#model-downloading-hf-downloader)). The CLI is `hf` (huggingface_hub 1.x):
+## Quick start
 
 ```bash
-# Discover a repo and inspect its contents
-docker compose run --rm hf-downloader models ls --search <name>
-docker compose run --rm hf-downloader repo files <owner/repo>
-
-# Pull a whole repo into the shared model store
-docker compose run --rm hf-downloader download <owner/repo> --local-dir /models/<name>
-
-# Pull a single artifact (e.g. a .ninfer file)
-docker compose run --rm hf-downloader download <owner/repo> <name>.ninfer --local-dir /models/NInfer
-
-# Filtered pull (glob include)
-docker compose run --rm hf-downloader download <owner/repo> --local-dir /models/<name> --include "*.safetensors"
+git clone <your-repo-url> local-ai-inference-stack && cd local-ai-inference-stack
+./setup.sh                 # prereqs, runtime dirs, .env, craft CLIs
+$EDITOR .env               # at minimum: SiYuan auth code + API token
+docker compose up -d       # builds llama-swap (needs ninfer:local) & starts
+curl -s localhost:8080/health
 ```
 
-Downloads land in the project store `./models` — immediately visible to every consumer container.
+Then, in the llama-swap UI / API, request one of the model ids defined in
+`llama-swap/config.yaml` (e.g. `qwen3.8-27b`). The first request cold-starts
+its server process (`healthCheckTimeout: 300` gives it room).
 
-### 2. Adding a model
+### Adding models
 
-A model becomes serveable once its `.ninfer` artifact is in the shared store and it is registered in `llama-swap/config.yaml` (bind-mounted into the container; llama-swap loads it at startup and spawns one `ninfer-serve` subprocess per registered model).
+1. Pull files into `./models` (owned by your host uid via `hf-downloader`):
+   ```bash
+   docker compose run --rm hf-downloader download <hf-repo> --local-dir ./models/<name>
+   ```
+2. Add a block to `llama-swap/config.yaml`: model id → server `cmd`
+   (the shipped entries are working examples for NInfer `.ninfer` checkpoints).
+3. Request that model id on `localhost:8080` — no restart of existing
+   processes needed; llama-swap spawns the new one on demand.
 
-```bash
-# 1. Artifact in the store (see step 1)
-ls ~/models/NInfer/<name>.ninfer
+## Configuration
 
-# 2. Register it — append under models: in llama-swap/config.yaml
-```
+- **`.env`** (git-ignored; copy from `.env.example`): host uid/gid, HF token,
+  SiYuan access-auth code + API token, companion token, Reddit MCP creds.
+  `docker compose` substitutes `${VAR}` from it into service envs.
+- **`llama-swap/config.yaml`**: model registry (see above).
+- **`goose/config.yaml`**: provider block points at
+  `OPENAI_HOST=http://llama-swap:8080` with model id `GOOSE_MODEL`;
+  MCP extensions (qdrant RAG, siyuan, reddit, …) — most are disabled by
+  default; enable + fill in what you use.
+- **`comfyui/extra_model_paths.yaml`**: maps the shared `./models` tree into
+  ComfyUI's model folders.
 
-```yaml
-# llama-swap/config.yaml
-models:
-  qwen3.8-27b:
-    cmd: "ninfer-serve /models/NInfer/qwen3_8_27b_nvfp4.ninfer --model-id qwen3.8-27b --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 131072 --kv-capacity auto --kv-dtype int8 --vision"
-  # new model entry:
-  my-new-model:
-    cmd: "ninfer-serve /models/NInfer/my_new_model.ninfer --model-id my-new-model --host 127.0.0.1 --port ${PORT} --spec mtp --draft-tokens 3 --lm-head-draft --max-context 131072 --kv-capacity auto --kv-dtype int8 --vision"
-```
+## Operational notes
 
-```bash
-# 3. Reload (config is read at startup)
-docker compose restart llama-swap
+- **GPU concurrency:** model `cmd`s use `--max-concurrency 1` to serialize on
+  the single GPU (two long contexts double-allocating KV kills the process);
+  `--pending-timeout-ms` keeps queued requests waiting instead of 500ing.
+- **FastEmbed offline cache:** the qdrant RAG extension caches embedding
+  weights at `/models/.hf/hub` with `HF_HUB_OFFLINE=1`. The cache root **must**
+  be `/models/.hf/hub` (not `/models/.hf`) or the offline lookup misses.
+  Pre-warm the cache with network access once, or place the hub files
+  under `./models/.hf/hub`.
+- **SiYuan auth is two-layered:** the *access auth code* gates the web UI;
+  the *API token* (conf.json → api.token) gates the REST API and is what
+  goose/companion send. Both go in `.env`.
+- **Craft CLIs:** bind mounts don't resolve symlinks, so goose gets **copies**
+  in `goose/craft-bin/` (staged by `setup.sh`), mounted at `/opt/craft/bin`
+  and prepended to `PATH` inside the container.
+- **Host networking:** `goose` and `pi-agent-harness` reach the host via the
+  `host.docker.internal` extra host; goose binds `0.0.0.0:3284`.
+- **Optional services:** drop `comfyui`, `prometheus`, `grafana`,
+  `dcgm-exporter`, and `llama-swap-exporter` (and their network lines) for a
+  minimal inference-only stack.
 
-# 4. Verify
-curl -s localhost:8088/v1/models      # both ids listed
-curl -s localhost:8088/running        # new model: state=ready once loaded
-```
+## Security
 
-Notes:
-
-- `--model-id` is the id clients address the model by (use this in goose `GOOSE_MODEL` / OpenAI clients).
-- `--port ${PORT}` is substituted by llama-swap per subprocess — keep it as-is.
-- Drop flags to taste: `--spec mtp --draft-tokens 3 --lm-head-draft` (speculative decoding), `--kv-dtype int8 --kv-capacity auto` (KV cache), `--max-context` (context window), `--vision` (multimodal).
-- Only one model loads to GPU at a time per concurrency of use — llama-swap hot-swaps the rest (`globalTTL: 600`).
-
-### 3. Running the goose CLI
-
-The `goose` container runs `goose serve` (REST/ACP API on `:3284`). Drive it either through the CLI inside the container or the API. The default provider/model come from `goose/config.yaml` (`openai` → `http://llama-swap:8080`, so runs consume the swap layer above).
-
-```bash
-# One-shot agent run (quiet mode: model response only on stdout)
-docker compose exec goose goose run -t "Summarize the llama-swap architecture in 5 bullets" -q
-
-# Interactive chat session (TUI; /help inside)
-docker compose exec -it goose goose session
-
-# Resume the most recent session (or a named one)
-docker compose exec -it goose goose session --resume
-docker compose exec -it goose goose session -n research --resume
-
-# Pipe instructions / stdin
-echo "List the registered models" | docker compose exec -i goose goose run -i - -q
-
-# Override provider/model for a single run (e.g. host Ollama instead of llama-swap)
-docker compose exec goose goose run -t "ping" -q \
-  --provider ollama --model "hf.co/unsloth/Qwen3.6-27B-GGUF:UD-Q6_K_XL"
-
-# Long-running autonomous session (detached; logs: docker logs <name>)
-docker compose run -d --name research goose goose run -t "Investigate <topic> and write findings to /workspace/findings.md"
-```
-
-```bash
-# REST surface (goose serve) — health check:
-curl -s localhost:3284                # ok
-```
-
-Notes:
-
-- Sessions persist as `.jsonl` under `./goose/workspace` (the container's `/workspace`); that's also where agent file work lands.
-- `-s/--interactive` continues into interactive mode after initial input; `-r/--resume` keeps execution state across runs.
-- Extensions (developer, todo, skills, goosedocs, qdrant_rag, playwright, reddit) are pre-wired in `goose/config.yaml`; ad-hoc stdio servers can be added per-run with `--with-extension "CMD ..."`.
-
-## NInfer Runtime (Unified)
-
-Since the shared-model-store consolidation there is **no standalone `ninfer` service**: the `Dockerfile` builds llama-swap's `unified-cuda` runtime with the `ninfer-serve` binary copied from a local `ninfer:local` build stage. llama-swap spawns one `ninfer-serve` subprocess per registered model on `127.0.0.1` inside the container.
-
-- **Build:** `docker compose build llama-swap` — requires `ninfer:local` to be built first from the local clone in `./ninfer` (its own git repo, not tracked here); needs an `sm_120a` GPU (RTX 5090) and CUDA 13.1+.
-- **Artifacts:** `/models/NInfer/*.ninfer` (project store `./models`, bind-mounted read-only).
-- **Pinned source:** local commits `fa2c9b4` (Prometheus metrics export) + `275d504` (HTTP status normalization fix) on top of upstream `a05746a`. The pinned state lives in the `./ninfer` clone; a fresh checkout of the public upstream lacks the metrics commits.
-
-## Telemetry
-
-`ninfer-serve` exports Prometheus text-format `ninfer_*` metrics (engine request states, prefill/decode token counters, device memory arenas, KV capacity, HTTP counters/latency histograms, MTP speculative counters). llama-swap re-exposes the active model's series at its own `/metrics`, and `llama-swap-exporter` pushes them (plus host metrics) to Prometheus under **`job="llama-swap-metrics"`** with `model`/`upstream` labels. There is no separate `ninfer` scrape job — the engine has no externally routable port.
-
-Dashboards (auto-provisioned from `grafana/dashboards/`, admin/admin on `:3033`):
-
-| Dashboard | Scope |
-| :--- | :--- |
-| **llama-swap Full Observability** (`llama-swap.json`) | Consolidated stack view: swap/model health, engine tokens & throughput, GPU (DCGM), host. |
-| **NInfer - Inference Engine** (`ninfer.json`) | Deep engine internals: KV cache, speculative acceptance, latency percentiles, HTTP surface. Pinned to `job="llama-swap-metrics"`. |
-| **Qdrant** (`qdrant.json`) | Vector-DB observability. |
-
-## goose
-
-- **Image:** `goose.Dockerfile` — `ghcr.io/block/goose:latest` + Node 22 LTS (18.x lacks the undici globals `mcp-remote` requires) + uv/uvx for MCP servers.
-- **Command:** `serve --host 0.0.0.0 --port 3284` — set explicitly in compose because the image's default CMD (`--help`) exits 0 and docker restart-loops.
-- **Providers** (`goose/config.yaml`): OpenAI provider → `http://llama-swap:8080` (primary); Ollama on the host (secondary, via `host-gateway`).
-- **RAG:** `qdrant_rag` extension embeds offline — FastEmbed cache at `/models/.hf/hub` + `HF_HUB_OFFLINE=1`; regulatory collections (CMMC, GDPR, HIPAA, ISO27001, SOC2) and the `memories` collection share the `fast-all-minilm-l6-v2` (384d) named vector.
-
-## Model Downloading (hf-downloader)
-
-**Convention: all model pulls from the Hugging Face Hub go through the `hf-downloader` container.** This is a hard prerequisite for `goose`, `llama-swap`, and the ninfer runtime — every one of them consumes artifacts from the project store `./models` bound read-only to `/models`, so a download only lands where consumers can see it if it goes through `hf-downloader`. See [Getting Started — Downloading models](#1-downloading-models) for the commands.
-
-Implementation details:
-
-- Builds from `Dockerfile.hf-downloader` (huggingface_hub 1.x + `hf` CLI + Xet high-performance transfer); writes into the project store `./models` as the host user (first-user uid `1000` by default; override with `HOST_UID`/`HOST_GID` in `.env`) so artifacts are host-manageable, not root-owned.
-- The CLI is **`hf`** — in huggingface_hub 1.x, `huggingface-cli` is a dead deprecation stub (exits 1).
-- High-throughput transfer uses the bundled Xet engine (`HF_XET_HIGH_PERFORMANCE=1` set in compose); the legacy `HF_HUB_ENABLE_HF_TRANSFER` env is deprecated.
-- `HF_HOME=/models/.hf` keeps the xet/HTTP cache on the writable mount and reuses it across runs.
-- Set `HF_TOKEN` in the environment for authenticated / gated repos: `HF_TOKEN=hf_... docker compose run --rm hf-downloader download ...`
-- Do **not** download models on the host or into ad-hoc directories; consumers will not see them.
-- **Store policy:** `./models` is the stack's single source of truth — consumers bind it read-only, `hf-downloader` is the sole writer. Host-side model dirs (e.g. `$HOME/models`, which still serves host tooling) are deliberately **not** mounted into the stack's containers: the stack stays relocatable (the repo dir contains everything it needs) and a download is always visible to consumers. The derived HF cache `.hf` (~150MB) is kept inside the store so offline RAG (`FASTEMBED_CACHE_PATH`) is turnkey on a fresh machine; it is disposable and re-downloadable.
-## SiYuan AI Companion
-
-OpenAI-compatible **RAG proxy** over the SiYuan knowledge base: on each request it retrieves the most relevant note blocks from qdrant (`siyuan_ai_companion` collection, all-MiniLM-L6-v2 embeddings, refreshed every 5 min + at startup via the SiYuan SQL API), reconstructs the notes, injects them into the prompt, and forwards to the LLM. Clients speak standard OpenAI chat-completions to it.
-
-- **Endpoints** (host `:8001`, `Authorization: Bearer <COMPANION_TOKEN>`):
-  - `POST /openai/rag/v1/chat/completions` — RAG-enhanced (note context injected into the user message)
-  - `POST /openai/direct/v1/chat/completions` — plain pass-through to the LLM (same for `/completions`, `/embeddings`, `GET /models`, `/direct/v1/retrieve`, `/direct/v1/transcribe`)
-  - `GET /health`
-- **LLM backend:** `llama-swap` (`http://llama-swap:8080/v1/`) — the same swap layer goose uses; any registered model id works (`qwen3.8-27b-uncensored`, …). Embeddings run on CPU (GPU is reserved by llama-swap).
-- **Local patch:** the image is built from `companion/Dockerfile` (base `firefox2100/siyuan-ai-companion:latest` — the `testing` tag in the upstream docs does not exist on Docker Hub) and fixes three issues in `views/utils.py forward_request()`: (1) the client's stale `Content-Length`/hop-by-hop headers are stripped before forwarding — the RAG handler rewrites the user message, so forwarding the original `Content-Length` made httpx/h11 raise `LocalProtocolError: Too much data for declared Content-Length` (500 on every RAG call); (2) upstream responses are forwarded as raw bytes (`response.content`) so charset re-encoding can never break the `Content-Length`; (3) the non-stream forward timeout is 300 s instead of 30 s (long 27B prefills).
-- **Notes:** upstream qdrant client (1.13.3) warns against this stack's qdrant server (1.19.x) — cosmetic, verified functional; llama-swap model ids are not in the app's known-tokenizer list, so it uses a generic tokenizer (override per-request with the `tokenizerModel` field if needed).
-- **Web UI gotcha:** the bundled Flutter web UI (`http://localhost:8001/`) resolves its OpenAI endpoint **from the browser**, so it must use a host-reachable URL — never the docker-internal `llama-swap:8080` (the browser can't resolve it → "Failed to execute fetch … ClientException"). Recommended UI settings (the UI accepts a **base URL only** and appends `/v1/…` itself, so do NOT include a trailing `/v1`): base `http://localhost:8001/openai/rag` (RAG through the companion → `…/openai/rag/v1/chat/completions`; API key = `COMPANION_TOKEN`) or `http://localhost:8088` (llama-swap direct → `…/v1/chat/completions`, no RAG). The container env `OPENAI_URL` keeps the docker-internal name — that one is resolved server-side, by design. The settings dialog only persists on clicking the save icon (top-right); if a change seems ignored, override from DevTools Console on `http://localhost:8001/`: `localStorage.setItem('open_ai_api_url','http://localhost:8001/openai/rag'); localStorage.setItem('open_ai_key','<COMPANION_TOKEN>'); localStorage.setItem('open_ai_model','qwen3.8-27b-uncensored'); location.reload();` — the UI's RAG retrieval step always hits `$ORIGIN` (works), but the completion step fetches `open_ai_api_url` from the browser, so a stale `llama-swap` value there yields "Failed to execute fetch … uri=http://llama-swap:8080/v1/chat/completions" even while the backend is healthy. `net::ERR_BLOCKED_BY_CLIENT` on the completion POST (while `/openai/direct/v1/retrieve` still reaches the backend) = Brave Shields / uBlock-class extension blocking the request client-side — set Shields to **No protection** for `localhost` (or disable the blocker for the tab) and hard-reload; the stack trace all in `main.dart.js` with a `localhost` URL confirms the config is already correct and only the browser filter remains.
+- All credentials come from `.env` (git-ignored). Never commit tokens,
+  client secrets, or refresh tokens — the tracked configs contain only
+  placeholders.
+- If you fork from a machine that had real values committed, **rotate the
+  affected tokens before pushing**.
+- The companion and pi-harness bind published ports for LAN use; front them
+  with a reverse proxy or firewall rules if this box isn't isolated.

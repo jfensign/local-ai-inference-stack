@@ -22,7 +22,7 @@
 
 # --- Provider (llama-swap swap layer, OpenAI-compatible) ---
 GOOSE_PROVIDER: openai
-GOOSE_MODEL: qwen3.8-27b-uncensored
+GOOSE_MODEL: qwen3.8-27b
 GOOSE_CONTEXT_LIMIT: 160536
 OPENAI_HOST: http://llama-swap:8080
 OPENAI_API_KEY: sk-local
@@ -114,7 +114,7 @@ extensions:
     enabled: true
     type: stdio
     name: qdrant_rag
-    description: Local Qdrant vector database for regulatory framework RAG queries.
+    description: Local Qdrant vector database for RAG queries.
     cmd: uvx
     args:
       - mcp-server-qdrant
@@ -131,7 +131,7 @@ extensions:
       # The default embedding model (sentence-transformers/all-MiniLM-L6-v2)
       # maps to the preseeded HF repo qdrant/all-MiniLM-L6-v2-onnx, and the
       # derived vector name fast-all-minilm-l6-v2 matches the existing
-      # compliance collections (384d, cosine).
+      # 384d cosine collections live in this instance.
       FASTEMBED_CACHE_PATH: /models/.hf/hub
       # The ONNX snapshot (qdrant/all-MiniLM-L6-v2-onnx) is preseeded in the
       # store; never touch the network from this extension.
@@ -209,9 +209,12 @@ extensions:
       - run
       - mcp-reddit
     envs:
-      REDDIT_REFRESH_TOKEN: REDACTED
-      REDDIT_CLIENT_SECRET: REDACTED
-      REDDIT_CLIENT_ID: REDACTED
+      # Real values live in .env (goose's own process env, see docker-compose.yml).
+      # goose's stdio `envs` block does not interpolate ${VAR} — fill these in
+      # locally if the inherited process env is not picked up by the MCP server.
+      REDDIT_REFRESH_TOKEN: ""
+      REDDIT_CLIENT_SECRET: ""
+      REDDIT_CLIENT_ID: ""
       REDDIT_USER_AGENT: mcp-reddit/1.0
 
   simple-pubmed:

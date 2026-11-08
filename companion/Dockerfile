@@ -20,6 +20,12 @@
 #      large corpus the JSON payload exceeds Qdrant's 32 MiB upload limit
 #      (HTTP 400) -> LifespanFailureError -> restart loop. The rest of the
 #      upstream file is unchanged.
+#   5. Encodes the whole corpus in a single transformer.encode() call
+#      instead of one call per block. The per-block version re-dispatches
+#      the torch thread pool once per block; on a large first-boot corpus
+#      (11,532 blocks) the encode kept the before_serving lifespan — and
+#      with it /health and the 8000 bind — blocked for many hours of CPU
+#      time before any point ever reached Qdrant.
 #
 # NOTE: the image ships the app in BOTH site-packages (the runtime import
 # path, per container logs) and /app/siyuan-ai-companion/src (source tree).

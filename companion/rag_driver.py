@@ -387,15 +387,22 @@ class RagDriver:
         """
         points = []
 
-        for block_id, block_content, document_id in blocks:
-            vector = self.transformer.encode(
-                sentences=block_content,
-                normalize_embeddings=True,
-            ).tolist()
+        # Single batched encode over the whole corpus (was: one encode() per
+        # block — each call re-dispatches the torch thread pool, which on a
+        # multi-socket host spins ~98 worker threads and takes days for a
+        # large corpus). normalize_embeddings=True matches the per-block
+        # behavior of add_block(); ids/payloads are unchanged, so re-indexing
+        # is idempotent against existing points.
+        vectors = self.transformer.encode(
+            sentences=[block[1] for block in blocks],
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
 
+        for (block_id, block_content, document_id), vector in zip(blocks, vectors, strict=True):
             point = PointStruct(
                 id=self._hash_id(block_id),
-                vector=vector,
+                vector=vector.tolist(),
                 payload={
                     'blockId': block_id,
                     'documentId': document_id,

@@ -58,8 +58,22 @@ if [ -f .env ]; then
 else
   say "Creating .env from .env.example"
   cp .env.example .env
-  warn "edit .env before 'docker compose up' (SiYuan auth code + API token at minimum)"
 fi
+# SiYuan refuses to boot via Docker without an access authorization code
+# (exactly 20 characters). Generate one if the .env left it empty.
+auth_code=$(sed -n 's/^SIYUAN_ACCESS_AUTH_CODE=//p' .env | head -1)
+if [ -z "$auth_code" ]; then
+  # No `head -c` at the tail: head closing the pipe makes tr die mid-flush
+  # and the captured length lands short of 20. Filter a 256-byte sample
+  # (≈62 alnum expected) and slice in bash instead.
+  while [ ${#auth_code} -lt 20 ]; do
+    auth_code=$(head -c 256 /dev/urandom | LC_ALL=C tr -dc 'a-z0-9')
+  done
+  auth_code=${auth_code:0:20}
+  sed -i "s/^SIYUAN_ACCESS_AUTH_CODE=.*/SIYUAN_ACCESS_AUTH_CODE=$auth_code/" .env
+  say "Generated SIYUAN_ACCESS_AUTH_CODE in .env (SiYuan requires exactly 20 chars)"
+fi
+warn "check .env before 'docker compose up' (fill in SIYUAN_TOKEN from the SiYuan UI — Settings → About → API token — once it is running)"
 
 # --- 4. Craft CLIs (optional) -----------------------------------------------
 # goose mounts ./goose/craft-bin as /opt/craft/bin (bind mounts need real
@@ -80,7 +94,7 @@ fi
 # --- Summary -----------------------------------------------------------------
 say "Setup complete."
 echo "  Next steps:"
-echo "    1. Fill in .env (SiYuan codes at minimum)"
+echo "    1. Fill in .env (SiYuan API token — see step 2 of the README)"
 echo "    2. Pull models into ./models via hf-downloader (see README 'Adding models')"
 echo "    3. docker compose up -d"
 echo "    4. Verify: curl -s localhost:8080/health  (llama-swap)"

@@ -1,4 +1,4 @@
-# Models & large binaries
+# Large model downloads & binaries
 models/
 *.gguf
 
@@ -9,16 +9,9 @@ models/
 # Runtime data (created by setup.sh / docker compose; never commit)
 qdrant_data/
 workspace/
-comfyui/storage-cache/
-comfyui/storage-user/
-comfyui/storage-nodes/
-comfyui/storage-models/
-.comfyui/
+comfyui/storage-*/
 
 # Agent scratch / local state
-llama-swap/.playwright-mcp/
-llama-swap/config.yaml.bak
-output.md
 goose/workspace/
 goose/local-share/
 goose/recipes/youtube-transcripts/
@@ -37,9 +30,3 @@ pi-agent-harness/*
 crossref/
 siyuan-skill/
 .pi/
-
-# Local ninfer build outputs
-ninfer/
-
-# Backups
-backups-*/

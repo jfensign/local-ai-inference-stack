@@ -146,7 +146,5 @@ its server process (`healthCheckTimeout: 300` gives it room).
 - All credentials come from `.env` (git-ignored). Never commit tokens,
   client secrets, or refresh tokens — the tracked configs contain only
   placeholders.
-- If you fork from a machine that had real values committed, **rotate the
-  affected tokens before pushing**.
 - The companion and pi-harness bind published ports for LAN use; front them
   with a reverse proxy or firewall rules if this box isn't isolated.

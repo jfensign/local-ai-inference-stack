@@ -86,6 +86,12 @@ Then, in the llama-swap UI / API, request one of the model ids defined in
 `llama-swap/config.yaml` (e.g. `qwen3.8-27b`). The first request cold-starts
 its server process (`healthCheckTimeout: 300` gives it room).
 
+To verify a fresh clone end-to-end, run `scripts/e2e.sh` — it clones the repo
+to a temp dir, runs `setup.sh`, brings the whole stack up on host ports
+remapped +1000 (so it never clashes with a running stack), exercises the
+SiYuan token flow, health-checks every service, and tears itself down on
+success. `E2E_REPO=<url-or-path>` points it at a specific clone source.
+
 ### Adding models
 
 1. Pull files into `./models` (owned by your host uid via `hf-downloader`):

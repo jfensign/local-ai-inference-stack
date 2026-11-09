@@ -147,6 +147,31 @@ success. `E2E_REPO=<url-or-path>` points it at a specific clone source.
   `dcgm-exporter`, and `llama-swap-exporter` (and their network lines) for a
   minimal inference-only stack.
 
+## Engineering notes
+
+**Observability.** The stack ships its own metrics pipeline:
+a small custom exporter (`llama-swap-exporter`) wraps the llama-swap
+API + the engine's Prometheus endpoint, `dcgm-exporter` covers the GPU,
+and Prometheus scrapes both into three provisioned Grafana dashboards
+(`llama-swap Full Observability`, `NInfer - Inference Engine`, and a
+Qdrant overview). One screen covers exporter health, per-model token
+throughput, speculative-decoding stats, GPU VRAM/clock, and host load:
+
+![llama-swap Full Observability dashboard](docs/llama-swap-dashboard.png)
+
+**GPU as a serialized resource.** llama-swap spawns one server process
+per model id on demand and keeps them idle; each server runs with
+`--max-concurrency 1` and a pending-request queue, so the single GPU
+never double-allocates KV while long contexts run. First request to a
+cold model pays a one-time server start (`healthCheckTimeout: 300`);
+everything after that is steady-state.
+
+**Deterministic first boot.** The SiYuan token flow (section above) is
+the one manual step by design: the token is kernel-generated, so the
+stack refuses to guess. `scripts/e2e.sh` automates the rest — clone,
+setup, build, token wiring, and per-service verification — and is the
+same path used to validate every release from a fresh clone.
+
 ## Security
 
 - All credentials come from `.env` (git-ignored). Never commit tokens,

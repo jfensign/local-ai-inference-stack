@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Docker-in-docker gives `docker compose config` a real compose binary;
+      # the runner already ships Docker, so this only starts the daemon.
+      - name: Start Docker daemon
+        run: sudo systemctl start docker
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyYAML
+        run: pip install pyyaml
+
+      - name: Prepare .env
+        run: cp .env.example .env
+
+      - name: Validate docker-compose.yml (config + env substitution)
+        run: docker compose config -q
+
+      - name: Syntax-check shell scripts
+        run: |
+          bash -n setup.sh
+          bash -n scripts/e2e.sh
+
+      - name: Validate YAML and JSON configs
+        run: |
+          python3 - <<'PY'
+          import json, sys, yaml
+          yamls = [
+              "docker-compose.yml",
+              "llama-swap/config.yaml",
+              "goose/config.yaml",
+              "grafana/provisioning/dashboards/dashboards.yml",
+              "grafana/provisioning/datasources/prometheus.yml",
+          ]
+          for f in yamls:
+              yaml.safe_load(open(f))
+              print(f"ok  {f}")
+          for f in ["grafana/dashboards/llama-swap.json",
+                    "grafana/dashboards/ninfer.json",
+                    "grafana/dashboards/qdrant.json"]:
+              json.load(open(f))
+              print(f"ok  {f}")
+          PY

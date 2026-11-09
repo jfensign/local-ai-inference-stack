@@ -1,5 +1,7 @@
 # local-ai-inference-stack
 
+[![CI](https://github.com/jfensign/local-ai-inference-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/jfensign/local-ai-inference-stack/actions/workflows/ci.yml)
+
 A Docker Compose stack for running a fully local AI inference environment on a
 single-GPU machine: model serving behind one OpenAI-compatible endpoint
 (**llama-swap**), agent tooling (**goose**, pi-agent-harness), a knowledge base

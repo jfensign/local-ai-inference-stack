@@ -132,6 +132,7 @@ services:
     environment:
       - OPENAI_BASE_URL=http://llama-swap:8080/v1
       - OPENAI_API_KEY=dummy-key
+      - BILI_CONFIG_FILE=/root/.pi/billion-context.json
     networks:
       - ai-net
 
